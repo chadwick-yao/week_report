@@ -1,6 +1,6 @@
 # 跬步千里
 
-**Weekly Summary.**
+**Weekly Report.**
 
 The best moments usually occur when a person's body or mind is stretched to its limits in a voluntary effort to accomplish something difficult and worthwhile.
 
@@ -26,3 +26,27 @@ The best moments usually occur when a person's body or mind is stretched to its 
 
 - 对Learning Bimanual Manipulation这个任务的深度理解，能够提出问题，甚至是改进方法
 - PowerPoint准备下周的group meeting.
+
+## 2023/07/13 ~ 2023/07/19
+
+### Summary
+
+The work I focused on this week is to continue to explore the paper from Stanford. To comprehend it deeply, I read papers about BERT and DETR, whose idea is used in that paper. CLS token has a representation from the global information level, which can be used as downstream tasks. In this paper, CLS output is used as style variant, namely latent code. As for DETR, it's originally used in object detection. But here, its brief or easy structure has also great performance.
+
+### Completed Tasks
+
+- Understand why it uses BERT and DETR ideas to solve problems in that paper.
+- Passed group meeting successfully.
+- Watched RSS conference live stream replay, some paper in RL implementation.
+
+### Challenges
+
+- Is there any idea to improve the current performance?
+- Is DETR the best structure to fit this environment?
+- I still can't use Isaac Gym simulation platform to do some simulation tasks.
+
+### Next Week Plan
+
+- Simulate the environment that the paper said totally. Fix the camera problem, and environment issues.
+- Continue reading the state-of-art papers.
+
