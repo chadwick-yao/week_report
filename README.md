@@ -50,3 +50,5 @@ The work I focused on this week is to continue to explore the paper from Stanfor
 - Simulate the environment that the paper said totally. Fix the camera problem, and environment issues.
 - Continue reading the state-of-art papers.
 
+# 2023/07/20 ～ 2023/07/26
+
