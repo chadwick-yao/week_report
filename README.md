@@ -106,39 +106,12 @@ The work I focused on this week is to continue to explore the paper from Stanfor
 
 - 问题2：obs怎么定义？
   - 方案：obs在compute_observations中实现，它实际上是直接从states中抽出来，可以进行自定义，比如说添加摄像头的handles
-
 - 问题3：如何实现读取env或者说创建env的？
   - 方案：isaacgymenvs.make里面会调用一个map，实际上env就是自己写的task类，后面进行play的时候需要利用好env的attribution
 - 问题4：step和run它们的作用分别是什么？
   - 方案：run会调用step，这是进行整个task可以这样认为；那么step就是这个task过程的一帧的update或者是物理环境在一个timestep的更新
-
 - 问题5：franka的人物没有用到摄像头，怎样添加这个camera？
   - 方案：所谓的states并没有那么有很大的作用，RL算法使用到的数据是observations进行reward的计算，所以初步认为，image可以放在state，然后camera可以在create_sim中进行添加；
-- 问题5：怎么只是导出成功完成任务的轨迹？
-
-​	
-
-
-
-camera handle是获得图像必须要的参数，由于只会指定一次，所以可以用一个list进行存储
-
-
-
-<font color="red">添加top摄像头</font>
-
-疑惑：DoF和Joint positions的关系 -> joint可以是fixed，所以DoF的状态不一定完全和joint一致。
-
-joint position 实际上用的就是torque力矩
-
-action是delta EEF -> dpose(6)，维度是6， 但是会通过计算得到torque/joint position 也就是7个维度
-
-收集一次数据joint image；
-
-保存的图片有问题。。。。
-
-ok解决了-> 占用同一块内存区域的问题
-
-
 
 ### 下周任务
 
@@ -148,7 +121,7 @@ ok解决了-> 占用同一块内存区域的问题
 
 
 
-<font color="red" size=20>去办港澳通行证</font>
+## 2023/08/03 ～ 2023/08/9 第五周
 
 gripper的状态（完成），摄像头的照片是否能够调整好一下（完成）
 
@@ -158,3 +131,18 @@ gripper的状态（完成），摄像头的照片是否能够调整好一下（�
 
 - 思路是这样的  人为定义一个上限 然后对所有文件进行整体padding
 - or 导出的时候我就进行一个统一，但是试过了有些bug 有一些浪费时间
+
+isaacgymenvs.make有问题 不知道为什么？
+
+实验效果比较差
+
+
+
+
+Diffusion Policy
+为了简便，将tasks和methods独立进行设计；
+
+### Tasks
+Dataset数据集接口；EnvRunner执行Policy并产生结果；config/task/.yaml这里是配置文件，包含很多参数；Env是基于gym的task environment；
+### Policy
+实现inference部分以及训练部分过程；workspace实现training&evaluation；config/.yaml这个是policy的配置文件；
