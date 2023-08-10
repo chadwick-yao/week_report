@@ -2,6 +2,7 @@
 
 ## Directory Structure
 
+```
 .
 ├── data # original data dir, and used for saving outputs
 ├── tests # env or functions testing
@@ -9,8 +10,12 @@
 ├── eval_real_robot.py # real env
 ├── multirun_metrics.py # compute metrics using logs
 └── train.py # training file
+```
 
 **diffusion_policy/**
+
+```
+
 ├── codecs # images processing
 ├── common # utils
 ├── config # configuration dir
@@ -26,6 +31,7 @@
 ├── scripts # buffer saving 
 ├── shared_memory # real robot
 └── workspace # execute env_runner -> train/validation 
+```
 
 <font color='red' size=4>ReplayBuffer -> storing a demonstration dataset</font>
 
