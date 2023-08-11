@@ -144,8 +144,10 @@ $ indices -> [ts - horizon * len(episode_ends), 4] $
 
 Sample sequences like this is more reasonable.
 
-- get push block data 
+- [x] Get `push block` task data 
 
-- obs/actions data :question:
-- algorithm, data -> policy :dart:<font color='blue'>sample algorithm</font>
-- diffusion policy / ACT 
+- [ ] obs/actions data :question:
+
+- [ ] algorithm, data -> policy :dart:<font color='blue'>sample algorithm</font>
+
+- [ ] diffusion policy / ACT 
