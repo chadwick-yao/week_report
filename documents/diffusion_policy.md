@@ -35,15 +35,7 @@
 
 <font color='red' size=4>ReplayBuffer -> storing a demonstration dataset</font>
 
-data/pusht_cchi_v7_replay.zarr
- ├── data
- │   ├── action (25650, 2) float32
- │   ├── img (25650, 96, 96, 3) float32
- │   ├── keypoint (25650, 9, 2) float32
- │   ├── n_contacts (25650, 1) float32
- │   └── state (25650, 5) float32
- └── meta
-     └── episode_ends (206,) int64
+
 
 ### PushT Task
 
@@ -87,6 +79,73 @@ output: (B,T,input_dim)
 
 
 
-- obs/act data 
-- alg, data -> policy
+### Dataset
+
+**diffusion_policy/dataset/**
+
+```
+├── base_dataset.py
+├── blockpush_lowdim_dataset.py
+├── kitchen_lowdim_dataset.py
+├── kitchen_mjl_lowdim_dataset.py
+├── pusht_dataset.py
+├── pusht_image_dataset.py
+├── real_pusht_image_dataset.py
+├── robomimic_replay_image_dataset.py
+└── robomimic_replay_lowdim_dataset.py
+```
+
+**base_dataset: **includes class `BaseLowdimDataset` and class `BaseImageDataset`, there are closely the same. 
+
+| pusht_image_dataset                          | pusht_dataset                                |
+| -------------------------------------------- | -------------------------------------------- |
+| ReplayBuffer -> img, state, action           | ReplayBuffer -> keypoint, state, action      |
+| obs -> image(T, 3, 96, 96) + agent_pos(T, 2) | obs -> cat(kpoint(T, 9, 2), agent_pos(T, 2)) |
+
+**Original Data (`__name__.zarr`)** <font color='red'>Load by ReplayBuffer</font>
+
+```tex
+$ lowdim push T/2D without image input $
+ ├── data
+ │   ├── action (25650, 2) float32
+ │   ├── img (25650, 96, 96, 3) float32
+ │   ├── keypoint (25650, 9, 2) float32
+ │   ├── n_contacts (25650, 1) float32
+ │   └── state (25650, 5) float32
+ └── meta
+     └── episode_ends (206,) int64 -> start & end
+```
+
+**Training Data**
+
+```tex
+$ lowdim push T/2D without image input $
+- obs		torch.Size([bs, horizon, 20])
+- action	torch.Size([bs, horizon, 2])
+
+$ image push T $
+- obs		torch.Size([bs, horizon, channels, h, w])
+- agent_pos	torch.Size([bs, horizon, 2])
+- action	torch.Size([bs, horizon, 2])
+
+$ block push $
+- obs		torch.Size([bs, horizon, 16])
+- action	torch.Size([bs, horizon, 2])
+```
+
+:point_down:**Data Sampling Algorithm**
+
+```tex
+# pad_before + episode_length + pad_after
+# min_start -> -pad_before
+# max_start -> episode_length - sequence_lenth + pad_after
+$ indices -> [ts - horizon * len(episode_ends), 4] $
+```
+
+Sample sequences like this is more reasonable.
+
+- get push block data 
+
+- obs/actions data :question:
+- algorithm, data -> policy :dart:<font color='blue'>sample algorithm</font>
 - diffusion policy / ACT 
