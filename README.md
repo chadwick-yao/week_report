@@ -123,21 +123,24 @@ The work I focused on this week is to continue to explore the paper from Stanfor
 
 ## 2023/08/03 ～ 2023/08/9 第五周
 
-gripper的状态（完成），摄像头的照片是否能够调整好一下（完成）
+### 概述
 
-修改ACT网络，让他能够跑franka代码（OK）
+这种的工作完成了ACT框架的修改，能够导入stack cube的task配置文件，并且实现了这个任务的train和inference步骤，为了更好的实验效果，对cube的初始位置进行了固定，以及franka的初始姿态也固定在一定范围，让它不是一个完全随机的过程。最终的结果并不是很理想，实验效果比较差。
 
-还是需要进行数据纬度统一（最好还是写一个函数再导入之前或者说hdf5文件就是统一的）
+### 完成的任务
 
-- 思路是这样的  人为定义一个上限 然后对所有文件进行整体padding
-- or 导出的时候我就进行一个统一，但是试过了有些bug 有一些浪费时间
+- franka机械臂stack cube任务在ACT网络框架下的训练和测试
 
-isaacgymenvs.make有问题 不知道为什么？
+### 遇到的困难
 
-实验效果比较差
+- Q1: 数据纬度需要进行统一
+  - S1: 人为定义一个上限 然后对所有文件进行整体padding
+
+- Q2: isaacgymenvs.make有问题
+  - S2: 项目有对hydra的依赖，如果直接进行make一个环境会有问题，按照原项目的train函数进行模仿重新写一个train和inference的函数
 
 
-
+## 2023/08/10～2023/08/16
 
 Diffusion Policy
 为了简便，将tasks和methods独立进行设计；

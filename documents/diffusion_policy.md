@@ -259,13 +259,112 @@ for ind, (dim_in, dim_out) in enumerate(reversed(in_out[1:])):
 
 **Transformer Module**
 ![Alt text](assets/image_1.png)
-- [x] Get `push block` task data 
 
-- [x] obs/actions data :question:
+### Inference
 
-- [x] algorithm, data -> policy :dart: <font color='blue'>sample algorithm</font>
 
-- [ ] diffusion policy / ACT 
+
+## Experiments
+
+Visual Push-T Task Executing...
+
+Here is tricky thing, CNN or Unet1D does not pre-process the camera images, they use one class from robomimic package. And `obs_encoder` is the visual part. The implementation details are below.
+
+```python
+from robomimic.algo import algo_factory
+from robomimic.algo.algo import PolicyAlgo
+policy: PolicyAlgo = algo_factory(
+        algo_name=config.algo_name,
+        config=config,
+        obs_key_shapes=obs_key_shapes,
+        ac_dim=action_dim,
+        device='cpu',
+    )
+obs_encoder = policy.nets['policy'].nets['encoder'].nets['obs']
+print(policy)
+'''
+============= Initialized Observation Utils with Obs Spec =============
+
+using obs modality: low_dim with keys: ['robot0_gripper_qpos', 'robot0_eef_pos', 'robot0_eef_quat']
+using obs modality: rgb with keys: ['robot0_eye_in_hand_image', 'agentview_image']
+using obs modality: depth with keys: []
+using obs modality: scan with keys: []
+ObservationKeyToModalityDict: mean not found, adding mean to mapping with assumed low_dim modality!
+ObservationKeyToModalityDict: scale not found, adding scale to mapping with assumed low_dim modality!
+ObservationKeyToModalityDict: logits not found, adding logits to mapping with assumed low_dim modality!
+BC_RNN_GMM (
+  ModuleDict(
+    (policy): RNNGMMActorNetwork(
+        action_dim=2, std_activation=softplus, low_noise_eval=True, num_nodes=5, min_std=0.0001
+  
+        encoder=ObservationGroupEncoder(
+            group=obs
+            ObservationEncoder(
+                output_shape=[0]
+            )
+        )
+  
+        rnn=RNN_Base(
+          (per_step_net): ObservationDecoder(
+              Key(
+                  name=mean
+                  shape=(5, 2)
+                  modality=low_dim
+                  net=(Linear(in_features=1000, out_features=10, bias=True))
+              )
+              Key(
+                  name=scale
+                  shape=(5, 2)
+                  modality=low_dim
+                  net=(Linear(in_features=1000, out_features=10, bias=True))
+              )
+              Key(
+                  name=logits
+                  shape=(5,)
+                  modality=low_dim
+                  net=(Linear(in_features=1000, out_features=5, bias=True))
+              )
+          )
+          (nets): LSTM(0, 1000, num_layers=2, batch_first=True)
+        )
+    )
+  )
+)
+
+'''
+```
+
+**What is timestep?**
+
+```python
+class DDPMScheduler:
+'''
+Denoising Diffusion Probabilistic Models explores the connections between denoising score matching and Langevin dynamics sampling.
+
+Args:
+	num_train_timesteps ("int"): number of diffusion steps used to train the model.
+	...
+funs:
+	set_timesteps: sets the discrete timesteps used for the diffusion chain. Supporting function to be run before inference
+	Args:
+		num_inference_steps ('int'): the number of diffusion steps used when generating samples with a pre-trained model
+'''
+timesteps = np.arange(0, num_train_timesteps, num_train_timesteps // num_inference_steps)[::-1]
+```
+
+**Tasks can be implemented**
+
+- block pushing
+- kitchen
+- pusht
+- robomimic (maybe)
+
+- [x] based on visual tasks, implement visual Push-T task
+- [x] What is timestep?
+- [x] figure out which task can be implemented, especially `square`. To realize more tasks as soon as possible, IBC etc.
+- [x] make sure when the sample includes image information, what will the train procedure be like?
+
+
 
 
 
