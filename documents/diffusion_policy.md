@@ -139,6 +139,8 @@ $ block push $
 
 ![image-20230813104532124](assets/image-20230813104532124.png)
 
+![image-20230813100337416](assets/image-20230813100337416.png)
+
 > - **Lift:**
 >   - Observation Space (10 dim), includes cube position(3), cube quaternion(7), and cube position relative to the robot end effector(3).
 >   - Action Space (7 dim), includes desired translation of EEF(3), desired delta rotation from current EEF(3), and opening and closing of the gripper fingers.
@@ -266,8 +268,6 @@ for ind, (dim_in, dim_out) in enumerate(reversed(in_out[1:])):
 
 ## Experiments
 
-Visual Push-T Task Executing...
-
 Here is tricky thing, CNN or Unet1D does not pre-process the camera images, they use one class from robomimic package. And `obs_encoder` is the visual part. The implementation details are below.
 
 ```python
@@ -352,20 +352,51 @@ funs:
 timesteps = np.arange(0, num_train_timesteps, num_train_timesteps // num_inference_steps)[::-1]
 ```
 
+## About Simulation Environment
+
+### How does `Kitchen Task` create an environment?
+
+```python
+# kitchen_lowdim_runner.py, PATH: diffusion_policy/env_runner
+from diffusion_policy.env.kitchen.v0 import KitchenAllv0
+# v0.py, PATH: diffusion_policy/env/kitchen
+from diffusion_policy.env.kitchen.base import KitchenBase
+# base.py, PATH: diffusion_policy/env/kitchen
+from adept_envs.franka.kitchen_multitask_v0 import KitchenTaskRelaxV1
+# kitchen_multitask_v0.py, PATH: diffusion_policy/env/kitchen/relay_policy_learning/adept_envs/adept_envs/franka
+from adept_envs import robot_env; from dm_control.mujoco import engine
+# robot_env.py, PATH: diffusion_policy/env/kitchen/relay_policy_learning/adept_envs/adept_envs
+from adept_envs import mujoco_env
+# mujoco_env.py, PATH: diffusion_policy/env/kitchen/relay_policy_learning/adept_envs/adept_envs
+from adept_envs.simulation.sim_robot import MujocoSimRobot, RenderMode
+# sim_robot.py, PATH: diffusion_policy/env/kitchen/relay_policy_learning/adept_envs/adept_envs/simulation
+class MujocoSimRobot:
+"""class that encapsulates a Mojoco simulation
+
+This class exposes methods that are agnostic to the simulation backend.
+Two backends are qupported:
+	1. mujoco_py - MuJoCo v1.50
+	2. dm_control - MuJoCo v2.00
+"""
+```
+
+### How does `Robomimic` load a simulation environment?
+
+Here it uses robomimic package to make an environment(EnvRobosuite) from metadata, and actually it still uses mujoco_py to create its environment.
+
+
+
+
+
+
+
 **Tasks can be implemented**
 
-- block pushing
-- kitchen
-- pusht
-- robomimic (maybe)
+- [x] visual push-t
+- [x] keypoints push-t
 
-- [x] based on visual tasks, implement visual Push-T task
-- [x] What is timestep?
-- [x] figure out which task can be implemented, especially `square`. To realize more tasks as soon as possible, IBC etc.
-- [x] make sure when the sample includes image information, what will the train procedure be like?
+- [ ] block pushing (no vision) :no_entry_sign:
 
-
-
-
-
-![image-20230813100337416](assets/image-20230813100337416.png)
+- [x] kitchen | being training -> mujoco
+- [ ] robomimic (maybe)
+- [ ] <font color='red'>Do Transformer Exp</font>
