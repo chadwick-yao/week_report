@@ -12,7 +12,7 @@
 └── train.py # training file
 ```
 
-**diffusion_policy/**
+**diffusion_policy**
 
 ```
 
