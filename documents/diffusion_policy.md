@@ -390,4 +390,13 @@ Here it uses robomimic package to make an environment(EnvRobosuite) from metadat
 
 
 
-![image-20230813100337416](assets/image-20230813100337416.png)
+**Tasks can be implemented**
+
+- [x] visual push-t
+- [x] keypoints push-t
+
+- [ ] block pushing (no vision) :no_entry_sign:
+
+- [x] kitchen | being training -> mujoco
+- [ ] robomimic (maybe)
+- [ ] <font color='red'>Do Transformer Exp</font>
