@@ -399,4 +399,7 @@ Here it uses robomimic package to make an environment(EnvRobosuite) from metadat
 
 - [x] kitchen | being training -> mujoco
 - [ ] robomimic (maybe)
+  - [x] Lift
+  - [ ] Square
+  - [ ] Can
 - [ ] <font color='red'>Do Transformer Exp</font>
