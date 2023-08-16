@@ -2,6 +2,8 @@
 
 ## Data
 
+### Square
+
 :arrow_forward: **observation**
 
 ```tex
@@ -26,6 +28,8 @@ robot0_gripper_qpos:
 desired translation of EEF(3), desired delta rotation from current EEF(3), and opening and closing of the gripper fingers:
 	shape: [7]
 ```
+
+### Can
 
 :arrow_forward: **observation**
 
