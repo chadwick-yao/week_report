@@ -58,176 +58,6 @@ desired translation of EEF(3), desired delta rotation from current EEF(3), and o
 
 ## Training
 
-### Unet
-
-![unet architecture](./assets/image.png)
-
-The training main backbone can be seen above, the `low_dim` type data will pass through Downsample Module, then Mid Module, and finally Upsample Module. With respect to `image`, it's processed by `obs_encoder` from robomimic package. 
-
-**Input**
-
-```python
-# X/sampler: low_dim input, like eef position, eef quaternion, etc.
-# timestep: sample from the discrete timesteps used for the diffusion chain
-# global cond & local cond: 
-if self.obs_as_local_cond:
-    # condition through local feature
-    # all zero except first To timesteps
-    local_cond = torch.zeros(size=(B,T,Do), device=device, dtype=dtype)
-    local_cond[:,:To] = nobs[:,:To]
-    shape = (B, T, Da)
-    cond_data = torch.zeros(size=shape, device=device, dtype=dtype)
-    cond_mask = torch.zeros_like(cond_data, dtype=torch.bool)
-elif self.obs_as_global_cond:
-    # condition throught global feature
-    global_cond = nobs[:,:To].reshape(nobs.shape[0], -1)
-    shape = (B, T, Da)
-    if self.pred_action_steps_only:
-        shape = (B, self.n_action_steps, Da)
-    cond_data = torch.zeros(size=shape, device=device, dtype=dtype)
-    cond_mask = torch.zeros_like(cond_data, dtype=torch.bool)
-else:
-    # condition through impainting
-    shape = (B, T, Da+Do)
-    cond_data = torch.zeros(size=shape, device=device, dtype=dtype)
-    cond_mask = torch.zeros_like(cond_data, dtype=torch.bool)
-    cond_data[:,:To,Da:] = nobs[:,:To]
-    cond_mask[:,:To,Da:] = True
-```
-
-Encoder & Decoder
-
-```python
-""" Encoder """
-# Diffusion Step Encoder for Timestep
-diffusion_step_encoder = nn.Sequential(
-    SinusoidalPosEmb(dsed),
-    nn.Linear(dsed, dsed * 4),
-    nn.Mish(),
-    nn.Linear(dsed * 4, dsed),
-)
-# local_cond_encoder for local cond
-local_cond_encoder = nn.ModuleList([
-    # down encoder
-    ConditionalResidualBlock1D
-    # up encoder
-    ConditionalResidualBlock1D
-])
-
-# x/sample encoder
-down_modules = nn.ModuleList([])
-for ind, (dim_in, dim_out) in enumerate(in_out):
-    down_modules.append(nn.ModuleList([
-        ConditionalResidualBlock1D,
-        ConditionalResidualBlock1D,
-        Downsample1d(dim_out) if not is_last else nn.Identity()
-    ]))
-""" Image Encoder """
-from robomimic.algo import algo_factory
-from robomimic.algo.algo import PolicyAlgo
-policy: PolicyAlgo = algo_factory(
-        algo_name=config.algo_name,
-        config=config,
-        obs_key_shapes=obs_key_shapes,
-        ac_dim=action_dim,
-        device='cpu',
-    )
-obs_encoder = policy.nets['policy'].nets['encoder'].nets['obs']
-print(policy)
-""" Decoder """
-# x/sample decoder
-up_modules = nn.ModuleList([])
-for ind, (dim_in, dim_out) in enumerate(reversed(in_out[1:])):
-    up_modules.append(nn.ModuleList([
-        ConditionalResidualBlock1D,
-        ConditionalResidualBlock1D,
-        Upsample1d(dim_in) if not is_last else nn.Identity()
-    ]))
-```
-
-**Loss Function**
-
-It uses a DDPM to approximate the conditional distribution $p(A_t|O_t)$ for planning. This formulation allows the model to predict actions conditioned on observations without the cost of inferring future states, speeding up the diffusion process and improving the accurary of generated antions. To capture the conditional distribution,it has:
-$$
-A_t^{k-1}=\alpha(A_t^k-\gamma \epsilon_{\theta}(O_t, A_t^k), k) + N(0, \sigma^2I)
-$$
-The traning loss is below:
-$$
-Loss = MSE(\epsilon^k, \epsilon_{\theta}(O_t, A_t^0+\epsilon^k,k))
-$$
-
-
-```python
-    def compute_loss(self, batch):
-        # normalize input
-        assert 'valid_mask' not in batch
-        nobs = self.normalizer.normalize(batch['obs'])
-        nactions = self.normalizer['action'].normalize(batch['action'])
-        batch_size = nactions.shape[0]
-        horizon = nactions.shape[1]
-
-        # handle different ways of passing observation
-        local_cond = None
-        global_cond = None
-        trajectory = nactions
-        cond_data = trajectory
-        if self.obs_as_global_cond:
-            # reshape B, T, ... to B*T
-            this_nobs = dict_apply(nobs, 
-                lambda x: x[:,:self.n_obs_steps,...].reshape(-1,*x.shape[2:]))
-            nobs_features = self.obs_encoder(this_nobs)
-            # reshape back to B, Do
-            global_cond = nobs_features.reshape(batch_size, -1)
-        else:
-            # reshape B, T, ... to B*T
-            this_nobs = dict_apply(nobs, lambda x: x.reshape(-1, *x.shape[2:]))
-            nobs_features = self.obs_encoder(this_nobs)
-            # reshape back to B, T, Do
-            nobs_features = nobs_features.reshape(batch_size, horizon, -1)
-            cond_data = torch.cat([nactions, nobs_features], dim=-1)
-            trajectory = cond_data.detach()
-
-        # generate impainting mask
-        condition_mask = self.mask_generator(trajectory.shape)
-
-        # Sample noise that we'll add to the images
-        noise = torch.randn(trajectory.shape, device=trajectory.device)
-        bsz = trajectory.shape[0]
-        # Sample a random timestep for each image
-        timesteps = torch.randint(
-            0, self.noise_scheduler.config.num_train_timesteps, 
-            (bsz,), device=trajectory.device
-        ).long()
-        # Add noise to the clean images according to the noise magnitude at each timestep
-        # (this is the forward diffusion process)
-        noisy_trajectory = self.noise_scheduler.add_noise(
-            trajectory, noise, timesteps)
-        
-        # compute loss mask
-        loss_mask = ~condition_mask
-
-        # apply conditioning
-        noisy_trajectory[condition_mask] = cond_data[condition_mask]
-        
-        # Predict the noise residual
-        pred = self.model(noisy_trajectory, timesteps, 
-            local_cond=local_cond, global_cond=global_cond)
-
-        pred_type = self.noise_scheduler.config.prediction_type 
-        if pred_type == 'epsilon':
-            target = noise
-        elif pred_type == 'sample':
-            target = trajectory
-        else:
-            raise ValueError(f"Unsupported prediction type {pred_type}")
-
-        loss = F.mse_loss(pred, target, reduction='none')
-        loss = loss * loss_mask.type(loss.dtype)
-        loss = reduce(loss, 'b ... -> b (...)', 'mean')
-        loss = loss.mean()
-        return loss
-```
-
 ### Transformer
 
 <img src="assets/image_1.png" alt="transformer architecture" style="zoom: 33%;" />
@@ -302,6 +132,14 @@ self.decoder = nn.TransformerDecoder(
 ```
 
 **Loss Function**
+
+It uses a DDPM to approximate the conditional distribution $p(A_t|O_t)$ for planning. This formulation allows the model to predict actions conditioned on observations without the cost of inferring future states, speeding up the diffusion process and improving the accurary of generated antions. To capture the conditional distribution,it has:
+
+$A_t^{k-1}=\alpha(A_t^k-\gamma \epsilon_{\theta}(O_t, A_t^k), k) + N(0, \sigma^2I)$
+
+The traning loss is below:
+
+$Loss = MSE(\epsilon^k, \epsilon_{\theta}(O_t, A_t^0+\epsilon^k,k))$
 
 ```python
 # this is how the model to calculate loss, and the loss function it uses is MSE_LOSS.
