@@ -6,6 +6,8 @@
 
 :arrow_forward: **observation**
 
+在square任务中，它的obs包括一个全局上帝视角的图片，一个wrist视角的图片，以及终端执行器的pos和quat，最后还有用两个维度描诉gripper的关节。
+
 ```tex
 agentview_image:
   shape: [3, 84, 84]
@@ -24,6 +26,8 @@ robot0_gripper_qpos:
 
 :arrow_forward: **action**
 
+action前三维度指的是EEF位置的变化，接着三维是角度的变化，最后一维是gripper的开合状态。
+
 ```
 desired translation of EEF(3), desired delta rotation from current EEF(3), and opening and closing of the gripper fingers:
 	shape: [7]
@@ -32,6 +36,8 @@ desired translation of EEF(3), desired delta rotation from current EEF(3), and o
 ### Can
 
 :arrow_forward: **observation**
+
+和square任务是一样的
 
 ```
 agentview_image:
@@ -50,6 +56,8 @@ robot0_gripper_qpos:
 ```
 
 :arrow_forward: **action**
+
+和square任务是一样的
 
 ```
 desired translation of EEF(3), desired delta rotation from current EEF(3), and opening and closing of the gripper fingers:
@@ -219,112 +227,62 @@ def compute_loss(self, batch):
 
 HyperParameters
 
-```yaml
-policy: # policy configuration
-	_target_: DiffusionTransformerHybridImagePolicy # policy type
-	
-	shape_meta: # observations and actions specification
-        obs:
-            agentview_image:
-                shape: [3, 84, 84]
-                type: rgb
-            robot0_eye_in_hand_image:
-                shape: [3, 84, 84]
-                type: rgb
-            robot0_eef_pos:
-                shape: [3]
-                # type default: low_dim
-            robot0_eef_quat:
-                shape: [4]
-            robot0_gripper_qpos:
-                shape: [2]
-        action: 
-			shape: [7]
-    
-    noise_scheduler: # DDPM algorithm's hyperparameters
-    	_target: DDPMScheduler	# algorithm type
-    	num_train_timesteps: 100
-    	beta_start: 0.0001
-    	beta_end: 0.02
-    	beta_schedule: squaredcos_cap_v2
-        variance_type: fixed_small # Yilun's paper uses fixed_small_log instead, but easy to cause Nan
-        clip_sample: True # required when predict_epsilon=False
-        prediction_type: epsilon # or sample
-    # task cfg
-    horizon: 10 # dataset sequence length
-    n_action_steps: 8	# number of steps of action will be executed
-    n_obs_steps: 2 # the latest steps of observations data as input
-    num_inference_steps: 100
-    # image cfg
-    crop_shape: [76, 76]	# images will be cropped into [76, 76]
-    obs_encoder_group_norm: False,
-    # arch
-    n_layer: 8	# transformer decoder/encoder layer number
-    n_cond_layers: 0  # >0: use transformer encoder for cond, otherwise use MLP
-    n_head: 4	# head number
-    n_emb: 256	# embedding dim (input dim --(emb)--> n_emb)
-    p_drop_emb: 0.0	# dropout prob (before encoder&decoder)
-    p_drop_attn: 0.3	# encoder_layer dropout prob
-    causal_attn: True	# mask or not
-    time_as_cond: True # if false, use BERT like encoder only arch, time as input
-    obs_as_cond: True
+下面是policy使用的DDPM算法的超参数：
 
-# if ema is true
-ema:
-    _target_: diffusion_policy.model.diffusion.ema_model.EMAModel
-    update_after_step: 0
-    inv_gamma: 1.0
-    power: 0.75
-    min_value: 0.0
-    max_value: 0.9999
-dataloader:
-    batch_size: 64
-    num_workers: 8
-    shuffle: True
-    pin_memory: True
-    persistent_workers: False
+| 参数名称      | 含义                      | 数值              |
+| ------------- | ------------------------- | ----------------- |
+| beta_start    | inference过程中beta起始值 | 0.0001            |
+| beta_end      | inference过程中beta最终值 | 0.02              |
+| beta_schedule | 映射策略                  | squaredcos_cap_v2 |
 
-val_dataloader:
-    batch_size: 64
-    num_workers: 8
-    shuffle: False
-    pin_memory: True
-    persistent_workers: False
+policy的task配置
 
-optimizer:
-    transformer_weight_decay: 1.0e-3
-    obs_encoder_weight_decay: 1.0e-6
-    learning_rate: 1.0e-4
-    betas: [0.9, 0.95]
+| 参数名称       | 含义                | 数值 |
+| -------------- | ------------------- | ---- |
+| horizon        | 预测action的step数  | 10   |
+| n_action_steps | 执行action的step数  | 8    |
+| n_obs_steps    | 预测依赖obs的step数 | 2    |
 
-training:
-    device: "cuda:0"
-    seed: 42
-    debug: False
-    resume: True
-    # optimization
-    lr_scheduler: cosine
-    # Transformer needs LR warmup
-    lr_warmup_steps: 10
-    num_epochs: 100
-    gradient_accumulate_every: 1
-    # EMA destroys performance when used with BatchNorm
-    # replace BatchNorm with GroupNorm.
-    use_ema: True
-    # training loop control
-    # in epochs
-    rollout_every: 10
-    checkpoint_every: 10
-    val_every: 1
-    sample_every: 5
-    # steps per epoch
-    max_train_steps: null
-    max_val_steps: null
-    # misc
-    tqdm_interval_sec: 1.0
-```
+policy的image超参数
 
+| 参数名称   | 含义                 | 数值 |
+| ---------- | -------------------- | ---- |
+| crop_shape | 图片经过裁剪后的维度 | 10   |
 
+policy使用的model超参数：
+
+| 参数名称    | 含义                              | 数值 |
+| ----------- | --------------------------------- | ---- |
+| crop_shape  | decoder/encoder的层数             | 8    |
+| n_head      | 多头注意力的头数                  | 4    |
+| n_emb       | 嵌入层纬度                        | 256  |
+| p_drop_emb  | 在encoder/decoder前的drop概率     | 0.0  |
+| p_drop_attn | transformer layer的内部drop的概率 | 0.3  |
+
+如果使用ema的超参数：
+
+| 参数名称  | 含义                   | 数值   |
+| --------- | ---------------------- | ------ |
+| inv_gamma | EMA warmup的逆乘法因子 | 1.0    |
+| power     | EMA warmup的指数因子   | 0.75   |
+| min_value | 最小 EMA 衰减率        | 0.0    |
+| max_value | 最大 EMA 衰减率        | 0.9999 |
+
+dataloader的超参数：
+
+| 参数名称    | 含义               | 数值 |
+| ----------- | ------------------ | ---- |
+| batch_size  | 批次大小           | 64   |
+| num_workers | 读取数据时的进程数 | 8    |
+
+optimizer的超参数：
+
+| 参数名称                 | 含义                                   | 数值        |
+| ------------------------ | -------------------------------------- | ----------- |
+| transformer_weight_decay | trans权重衰减率                        | 1.0e-3      |
+| obs_encoder_weight_decay | obs encoder权重衰减率                  | 1.0e-6      |
+| learning_rate            | 学习率                                 | 1.0e-4      |
+| betas                    | 用于计算梯度及其平方的运行平均值的系数 | [0.9, 0.95] |
 
 ## Inference
 
