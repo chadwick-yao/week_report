@@ -143,6 +143,16 @@ for ind, (dim_in, dim_out) in enumerate(reversed(in_out[1:])):
 
 **Loss Function**
 
+It uses a DDPM to approximate the conditional distribution $p(A_t|O_t)$ for planning. This formulation allows the model to predict actions conditioned on observations without the cost of inferring future states, speeding up the diffusion process and improving the accurary of generated antions. To capture the conditional distribution,it has:
+$$
+A_t^{k-1}=\alpha(A_t^k-\gamma \epsilon_{\theta}(O_t, A_t^k), k) + N(0, \sigma^2I)
+$$
+The traning loss is below:
+$$
+Loss = MSE(\epsilon^k, \epsilon_{\theta}(O_t, A_t^0+\epsilon^k,k))
+$$
+
+
 ```python
     def compute_loss(self, batch):
         # normalize input
@@ -213,8 +223,6 @@ for ind, (dim_in, dim_out) in enumerate(reversed(in_out[1:])):
         loss = loss.mean()
         return loss
 ```
-
-
 
 ### Transformer
 
