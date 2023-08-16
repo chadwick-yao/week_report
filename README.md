@@ -149,3 +149,5 @@ Diffusion Policy
 Dataset数据集接口；EnvRunner执行Policy并产生结果；config/task/.yaml这里是配置文件，包含很多参数；Env是基于gym的task environment；
 ### Policy
 实现inference部分以及训练部分过程；workspace实现training&evaluation；config/.yaml这个是policy的配置文件；
+
+- [ ] <font color='red'>使用ACT跑起来square和can</font>
