@@ -2,11 +2,9 @@
 
 ## Data
 
-### Square
-
 :arrow_forward: **observation**
 
-在square任务中，它的obs包括一个全局上帝视角的图片，一个wrist视角的图片，以及终端执行器的pos和quat，最后还有用两个维度描诉gripper的关节。
+obs包括一个全局上帝视角的图片，一个wrist视角的图片，以及终端执行器的pos和quat，最后还有用两个维度描诉gripper的关节。
 
 ```tex
 agentview_image:
@@ -27,37 +25,6 @@ robot0_gripper_qpos:
 :arrow_forward: **action**
 
 action前三维度指的是EEF位置的变化，接着三维是角度的变化，最后一维是gripper的开合状态。
-
-```
-desired translation of EEF(3), desired delta rotation from current EEF(3), and opening and closing of the gripper fingers:
-	shape: [7]
-```
-
-### Can
-
-:arrow_forward: **observation**
-
-和square任务是一样的
-
-```
-agentview_image:
-  shape: [3, 84, 84]
-  type: rgb
-robot0_eye_in_hand_image:
-  shape: [3, 84, 84]
-  type: rgb
-robot0_eef_pos:
-  shape: [3]
-  # type default: low_dim
-robot0_eef_quat:
-  shape: [4]
-robot0_gripper_qpos:
-  shape: [2]
-```
-
-:arrow_forward: **action**
-
-和square任务是一样的
 
 ```
 desired translation of EEF(3), desired delta rotation from current EEF(3), and opening and closing of the gripper fingers:
