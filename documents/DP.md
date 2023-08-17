@@ -70,12 +70,18 @@ desired translation of EEF(3), desired delta rotation from current EEF(3), and o
 
 <img src="assets/image_1.png" alt="transformer architecture" style="zoom: 33%;" />
 
-**Input**
+**Inputs**
+
+Here inputs are quite crucial, `X/sample` is a sequence of noised action (its dimension can be [bs, horizon, action_dim], [B, n_action_step, action_dim] or [bs, horizon, action_dim + obs_feature_dim]). `timesteps` is the number of diffusion steps, for instance, if `timesteps=10` then it has 10 steps from the original sample. 
+
+The default value of `cond` is `None`, but when `obs_as_cond` is set `True`, which means the model would take observation as a condition, and the detailed procedures are below. 
+
+**TESTING:** Because we are using To steps of observations to do prediction, so first it obtain `this_nobs` from the firt To of `nobs`. Then, `this_nobs` will be passed through `obs_encoder` to get its features, named `cond`. Conversely, if `obs_as_cond` is `False`, it will do condition through impainting. 
+
+**TRAINING: **the same.
 
 ```python
-# X/sampler: low_dim input, like eef position, eef quaternion, etc.
-# timestep: sample from the discrete timesteps used for the diffusion chain
-# cond: 
+""" TESTING """
 if self.obs_as_cond:
     this_nobs = dict_apply(nobs, lambda x: x[:,:To,...].reshape(-1,*x.shape[2:]))
     nobs_features = self.obs_encoder(this_nobs)
@@ -97,9 +103,35 @@ else:
     cond_mask = torch.zeros_like(cond_data, dtype=torch.bool)
     cond_data[:,:To,Da:] = nobs_features
     cond_mask[:,:To,Da:] = True
+""" TRAINING """
+if self.obs_as_cond:
+    # reshape B, T, ... to B*T
+    this_nobs = dict_apply(nobs, lambda x: x[:,:To,...].reshape(-1,*x.shape[2:]))
+    nobs_features = self.obs_encoder(this_nobs)
+    # reshape back to B, T, Do
+    cond = nobs_features.reshape(batch_size, To, -1)
+    if self.pred_action_steps_only:
+        start = To - 1
+        end = start + self.n_action_steps
+        trajectory = nactions[:,start:end]
+else:
+    # reshape B, T, ... to B*T
+    this_nobs = dict_apply(nobs, lambda x: x.reshape(-1, *x.shape[2:]))
+    nobs_features = self.obs_encoder(this_nobs)
+    # reshape back to B, T, Do
+    nobs_features = nobs_features.reshape(batch_size, horizon, -1)
+    trajectory = torch.cat([nactions, nobs_features], dim=-1).detach()
+
+# generate impainting mask
+if self.pred_action_steps_only:
+    condition_mask = torch.zeros_like(trajectory, dtype=torch.bool)
+else:
+    condition_mask = self.mask_generator(trajectory.shape)
 ```
 
 Encoder & Decoder
+
+Encoder is designed to encode `cond` and `timesteps`. `n_cond_layers` can be set in configuration files, and if it’s > 0, transformer encoder will replace MLP encoder. Both transformer encoder and decoder are using torch.nn module.
 
 ```python
 self.cond_pos_emb = nn.Parameter(torch.zeros(1, T_cond, n_emb))
@@ -149,6 +181,10 @@ The traning loss is below:
 
 $Loss = MSE(\epsilon^k, \epsilon_{\theta}(O_t, A_t^0+\epsilon^k,k))$
 
+> `compute_loss` is a method of policy, it is only used in training. However, when testing or doing rollout, it uses `predict_action`, another method of policy. With respect to compute_loss, now we have a original trajectory, first, we produce noise by torch.randn, whose shape is the same as the original trajectory. As talked in transformer model above, except for X/sample (here is trajectory) and `cond`, we also need `timesteps`, here it uses torch.randint. 
+>
+> When we have noise, and all the required data, then it uses `noise_scheduler` (DDPM algorithm) to add noise in the original trajectory. And this process can be regarded as the forward, therefore, next step is the backward to predict noise with Diffusion Model (DM is actually a noise predictor.). Finally, we use MSE to calculate the loss. 
+
 ```python
 # this is how the model to calculate loss, and the loss function it uses is MSE_LOSS.
 def compute_loss(self, batch):
@@ -187,7 +223,7 @@ def compute_loss(self, batch):
         condition_mask = torch.zeros_like(trajectory, dtype=torch.bool)
     else:
         condition_mask = self.mask_generator(trajectory.shape)
-
+""" NOTE: the codes above has been introduced """
     # Sample noise that we'll add to the images
     noise = torch.randn(trajectory.shape, device=trajectory.device)
     bsz = trajectory.shape[0]
@@ -225,7 +261,11 @@ def compute_loss(self, batch):
     return loss
 ```
 
-HyperParameters
+
+
+
+
+**HyperParameters**
 
 下面是policy使用的DDPM算法的超参数：
 
@@ -390,6 +430,8 @@ training:
 ```
 ## Inference
 
+When doing inference/testing/rollout, it will use predict_action function of policy. The difference between inference and training is that, it would not do backward to update parameters, secondly instead of just getting noise to compute loss, it uses `noise_scheduler.step` to acquire the original trajectory.
+
 ```python
 # ========= inference  ============
 def conditional_sample(self, 
@@ -428,5 +470,89 @@ def conditional_sample(self,
     trajectory[condition_mask] = condition_data[condition_mask]        
 
     return trajectory
+
+def predict_action(self, obs_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+    """
+    obs_dict: must include "obs" key
+    result: must include "action" key
+    """
+	...
+	...
+    # run sampling
+    nsample = self.conditional_sample(
+        cond_data, 
+        cond_mask,
+        cond=cond,
+        **self.kwargs)
+
+    # unnormalize prediction
+    naction_pred = nsample[...,:Da]
+    action_pred = self.normalizer['action'].unnormalize(naction_pred)
+
+    # get action
+    if self.pred_action_steps_only:
+        action = action_pred
+    else:
+        start = To - 1
+        end = start + self.n_action_steps
+        action = action_pred[:,start:end]
+
+    result = {
+        'action': action,
+        'action_pred': action_pred
+    }
+    return result
+```
+
+Here is the algorithm of `noise_scheduler.step`. (x_t -> x_t-1)
+
+```python
+# 1. compute alphas, betas
+# 2. compute predicted original sample from predicted noise also called
+# 3. Clip "predicted x_0"
+# 4. Compute coefficients for pred_original_sample x_0 and current sample x_t
+# 5. Compute predicted previous sample µ_t
+pred_prev_sample = pred_original_sample_coeff * pred_original_sample + current_sample_coeff * sample
+# 6. Add noise
+pred_prev_sample = pred_prev_sample + variance
+```
+
+The whole inference process is implemented in `env_runner.run`, which takes in a pre-trained policy.
+
+```python
+while not done:
+    # create obs dict
+    np_obs_dict = dict(obs)
+    if self.past_action and (past_action is not None):
+        # TODO: not tested
+        np_obs_dict['past_action'] = past_action[
+            :,-(self.n_obs_steps-1):].astype(np.float32)
+
+    # device transfer
+    obs_dict = dict_apply(np_obs_dict, 
+        lambda x: torch.from_numpy(x).to(
+            device=device))
+
+    # run policy
+    with torch.no_grad():
+        action_dict = policy.predict_action(obs_dict)
+
+    # device_transfer
+    np_action_dict = dict_apply(action_dict,
+        lambda x: x.detach().to('cpu').numpy())
+
+    action = np_action_dict['action']
+    if not np.all(np.isfinite(action)):
+        print(action)
+        raise RuntimeError("Nan or Inf action")
+
+    # step env
+    env_action = action
+    if self.abs_action:
+        env_action = self.undo_transform_action(action)
+
+    obs, reward, done, info = env.step(env_action)
+    done = np.all(done)
+    past_action = action
 ```
 

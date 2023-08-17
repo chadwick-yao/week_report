@@ -113,3 +113,35 @@ latent_input = self.latent_out_proj(latent_sample)
 ```
 
 In testing time, policy will return actions instead of loss_dict (can be seen in Loss Function section).
+
+## Code Structure
+
+Code structure here is pretty easy, but when you need to modify something, it becomes not so convenient.
+
+```bash
+.
+├── assets
+├── data_dir
+├── detr
+├── constants.py
+├── utils.py
+├── ee_sim_env.py
+├── sim_env.py
+├── policy.py
+├── scripted_policy.py
+├── imitate_episodes.py
+├── record_sim_episodes.py
+└── visualize_episodes.py
+```
+
+`assets` saves the robot physical modle(xml file) and various environments in different tasks.
+`data_dir` saves traning data.
+`detr` is the transformer model file, defines the model structure.
+`utils` defines some common used functions.
+`ee_sim_env/sim_env` respectively defines EEF-control and Joint-Pos control space in Mujoco Env.
+`scripted_policy` is a hand-made policy to lead the robot how to complete the task.
+`policy` is a policy used detr model.
+`imitate_episodes` defines how it train and evaluate the whole model.
+`record_sim_episodes` is to produce simulation data.
+`visualize_episodes` is a method to save the simulation video.  
+
