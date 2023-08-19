@@ -542,7 +542,7 @@ pred_prev_sample = pred_prev_sample + variance
 ## Problem
 
 1. What are the values of alpha, gamma in the denoising process?
-2. 
+2. What is the value of the variance for iteration k?
 
 
 
