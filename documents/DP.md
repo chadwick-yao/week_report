@@ -1,4 +1,4 @@
-# DDPM
+# Diffusion Policy
 
 ## Data
 
@@ -539,7 +539,7 @@ pred_prev_sample = pred_original_sample_coeff * pred_original_sample + current_s
 pred_prev_sample = pred_prev_sample + variance
 ```
 
-## Problems/Issues
+## Comments
 
 1. What are the values of alpha, gamma in the denoising process?
 2. What is the value of the variance for iteration k? How to sample the random noise for iteration k?
