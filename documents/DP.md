@@ -544,6 +544,7 @@ pred_prev_sample = pred_prev_sample + variance
 1. What are the values of alpha, gamma in the denoising process?
 2. What is the value of the variance for iteration k? How to sample the random noise for iteration k?
 3. The Visual Encoder is missing.
+4. The diffusion transformer adopts the architecture from the minGPT (check it out), which is a decoder-only variant of the Transformer.
 
 
 
