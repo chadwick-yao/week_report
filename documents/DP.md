@@ -539,7 +539,10 @@ pred_prev_sample = pred_original_sample_coeff * pred_original_sample + current_s
 pred_prev_sample = pred_prev_sample + variance
 ```
 
+## Problem
 
+1. What are the values of alpha, gamma?
+2. 
 
 
 
