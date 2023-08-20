@@ -6,6 +6,35 @@
 
 The whole model is trained as a Conditional VAE, which means it first produces a latent code extracted from the input (called encoder, left in the picture), and then uses the latent code to restore the input (called decoder, right in the picture). In details, it regards observations as the conditions to constrain and help itself to perform better.
 
+![image-20230818101923726](ACT/image-20230818101923726.png)
+
+Before training, we should to create our `dataloader`. First, its `.dhf5` file data structure is like this below:
+
+```tex
+action: target joint positions [episode_len, 14] # each robot has 7 DoF
+observations:
+	- images: [episode_len, cam_num, h, w]
+		- top
+		- left wrist
+		- right wrist
+		- front
+	- qpos: current joint positions [episode_len, 14]
+	- qvel: current joint velocity [episode_len, 14]
+```
+
+**Sample the data:** Here it just randomly select an int from [0, episode_len], named `start_ts`. For per data sample in a batch, we just select index of `start_ts` from original data. Specifically, `dataset[observations][qpos][start_ts]` for instance, and the images as well. About action sequence, we do the follow things.
+
+```python
+# create a zero vector in action episode shape
+padded_action = torch.zero_like(action)
+# sample actions from action episode
+sample_actions = dataset[action][start_ts:]
+# replace padded_action with sample actions
+padded_action[:len(sample_actions)] = sample_actions
+# sample the first k actions as action sequence
+action_sequence = padded_action[:k]
+```
+
 ### Input
 
 ```python
@@ -16,9 +45,11 @@ The whole model is trained as a Conditional VAE, which means it first produces a
 
 ### Encoder & Decoder
 
-As it described above, the `encoder` is a transformer encoder, which produces a style variable from input.
+As it described above, the `encoder` is a transformer encoder, which produces a style variable from input. We have `qpos`, `CLS` and `action sequence`. Before feeding them into encoder, we do mapping these into a 512-dim space by using linear layer. Then, we concatenate them in second dimension (axis=1) and do position embedding process. 
 
 ![image-20230816143139064](assets/image-20230816143139064.png)
+
+After being processed by transformer decoder, we just take the first output or CLS output. Through a learnable linear layer, we get `mean` and `std` of CLS output. Finally we use reparameterization algorithm to solve the non-derivable issue.
 
 ```python
 """ Encoder -> get z style variable or latent input"""
@@ -46,9 +77,11 @@ latent_sample = reparametrize(mu, logvar)
 latent_input = self.latent_out_proj(latent_sample)
 ```
 
-The `decoder` includes a resnet block to process images, a transformer encoder and a transformer decoder.
+The `decoder` includes a resnet block to process images, a transformer encoder and a transformer decoder. The inputs include images from four different cameras, joints positions and latent code/style variable from `encoder` of VAE. For images, it will go into ResNet18 to extract its features. Then the features of images, joints positions and style variable will be concatenated together for position embedding. 
 
 ![image-20230816143204772](assets/image-20230816143204772.png)
+
+The inputs of transformer decoder are also some learnable embedding parameters which teaches the model how to query actions.
 
 ```python
 # Image observation features and position embeddings
@@ -70,6 +103,8 @@ hs = self.transformer(src, None, self.query_embed.weight, pos, latent_input, pro
 ```
 
 ### Loss Function
+
+The total loss contains l1_loss/MAE and kl divergence. l1_loss is got by calculating the difference between predict_actions and original actions. kl divergence is calculated with mean and variance.
 
 ```python
 def __call__(self, qpos, image, actions=None, is_pad=None):
