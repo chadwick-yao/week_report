@@ -720,13 +720,14 @@ variance = torch.clamp(variance, min=1e-20)
 # finally do 
 variance = (self._get_variance(t, predicted_variance=predicted_variance) ** 0.5) * variance_noise
 ```
-3. Where is x/sample? Why such a notation?
-4. noised action = noised action execution sequence?
-5. What is the format of the observation feature?
-6. Cond can be None?
-7. What is bs in [bs, horizon, action_dim]? Why the dimension has three situations?
-8. Forward Details?
 
+3. The Visual Encoder is missing. Add it before the diffusion transformer.
+
+> done, see <a href="#obs_encoder">obs_encoder</a>
+
+4. The diffusion transformer adopts the architecture from the minGPT (check it out), which is a decoder-only variant of the Transformer. Modify the content accordingly.
+
+> See <a href="#Forward Details">Forward Details</a>
 
 5. noised action = noised action execution sequence?
 
