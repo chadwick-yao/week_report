@@ -396,4 +396,29 @@ n_train和n_test是需要执行的不同的环境，n_envs是所有要执行的�
 
 
 
-在run的过程中，有一个global_slice和local_slice其实就是index的两种方式
+在run的过程中，有一个global_slice和local_slice其实就是index的两种方式，local是用来render的，ok可以开始写了
+
+怎么才算done？
+
+VectorEnv是env的基类，来自gym，在执行step的时候，实际上使用step_wait，会在集成类进行implement.
+
+```python
+""" AsyncVectorEnv继承VectorEnv """
+"""
+参数：
+env_fns 一堆构造env的函数
+shared_memory是用来放obs的
+child_pipe接收parent_pipe的info
+实际上执行的还是multistep_wrapper的step
+实际上是gym.Wrapper的step
+实际上是videoRecordingwrapper
+实际上是RobomimicImageWrapper
+实际上是EnvRobosuite
+        # done if number of elapsed timesteps is greater than horizon
+        self.done = (self.timestep >= self.horizon) and not self.ignore_done
+"""
+```
+
+reward如何计算很重要；但是不知道。。。
+
+实现test

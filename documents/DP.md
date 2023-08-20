@@ -632,6 +632,24 @@ def predict_action(self, obs_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.T
     obs_dict: must include "obs" key
     result: must include "action" key
     """
+    assert 'past_action' not in obs_dict # not implemented yet
+    # normalize input
+    nobs = self.normalizer.normalize(obs_dict)
+    value = next(iter(nobs.values()))
+    B, To = value.shape[:2]
+    T = self.horizon
+    Da = self.action_dim
+    Do = self.obs_feature_dim
+    To = self.n_obs_steps
+
+    # build input
+    device = self.device
+    dtype = self.dtype
+
+    # handle different ways of passing observation
+    cond = None
+    cond_data = None
+    cond_mask = None
     if self.obs_as_cond:
         this_nobs = dict_apply(nobs, lambda x: x[:,:To,...].reshape(-1,*x.shape[2:]))
         nobs_features = self.obs_encoder(this_nobs)
@@ -718,3 +736,14 @@ variance = (self._get_variance(t, predicted_variance=predicted_variance) ** 0.5)
 
 > See <a href="#Forward Details">Forward Details</a>
 
+5. noised action = noised action execution sequence?
+
+> No, the shape of noised action is (B, T, Da), but the shape of noised action execution sequence is (B, n_action_steps, Da). Noticeably, T >= n_action_steps
+
+6. What is the format of the observation feature?
+
+> First, we take the subsequence of the first To observations and reshape it, and the make it processed by obs_encoder to get nobs_features, finally we do `nobs_features.reshape(B, To, -1)` to reshape obs features.
+
+7. What is bs in [bs, horizon, action_dim]? Why the dimension has three situations?
+
+> bs means batch_size. Because it needs to consider whether regarding observations as a condition. If no, the shape of the output is like (B, T, Da+Do), which uses impainting method to replace action with obs features. If yes, then consider whether predicting action steps only, output shape is (B, n_action_steps, Da) when predicting action steps only, else (B, T, Da).
