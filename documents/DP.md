@@ -648,13 +648,11 @@ pred_prev_sample = pred_prev_sample + variance
 
 ## Comments
 
-1. What are the values of alpha, gamma in the denoising process?
-
-![image-20230820105137202](assets/image-20230820105137202.png)
+1. Specify the values of alpha, gamma in the denoising process.
 
 > gamma is the learning rate. alpha is a weight to denote the importance of noise.
 
-2. What is the value of the variance for iteration k? 
+2. Specify the value of the variance for iteration k (with explanation).
 
 ```python
 # first sample a variance noise
@@ -665,8 +663,6 @@ variance = torch.clamp(variance, min=1e-20)
 # finally do 
 variance = (self._get_variance(t, predicted_variance=predicted_variance) ** 0.5) * variance_noise
 ```
-
-
 
 3. The Visual Encoder is missing. Add it before the diffusion transformer.
 
