@@ -253,9 +253,9 @@ Inputs:
 
 - `cond` denotes the observation feature. The default value of `cond` is `None`. 
 
-- `timesteps` is the number of diffusion steps, for instance, if `timesteps=10` then it has 10 steps from the original sample. The greater the timesteps is, the more serious noise the data has.
+- `timesteps` is the number of diffusion steps. For instance, if `timesteps=10` then it has 10 steps from the original sample. 
 
-`Encoder` is designed to encode conditions, like `cond` and `timesteps`. `n_cond_layers` can be set in configuration files, and if it’s > 0, transformer encoder will replace MLP encoder. 
+`Encoder` is designed to encode conditions, like `cond` and `timesteps`. `n_cond_layers` can be set in configuration files, and if it’s > 0, the transformer encoder will replace MLP encoder. 
 
 `Decoder` takes in noised actions and encoded information, then predicts a noise with the same shape of X/sample.
 
@@ -341,36 +341,6 @@ x = self.decoder(
     memory_mask=self.memory_mask
 )
 ```
-
-**TRAINING: **Because we are using `To` steps of observations to do prediction, so first it obtain `this_nobs` from the first `To` of `nobs`. Then, `this_nobs` will be passed through `obs_encoder` to get its features, named `cond`. Conversely, if `obs_as_cond` is `False`, it will do condition through impainting. 
-
-```python
-""" TRAINING: How to generate `cond` """
-if self.obs_as_cond:
-    # reshape B, T, ... to B*T
-    this_nobs = dict_apply(nobs, lambda x: x[:,:To,...].reshape(-1,*x.shape[2:]))
-    nobs_features = self.obs_encoder(this_nobs)
-    # reshape back to B, T, Do
-    cond = nobs_features.reshape(batch_size, To, -1)
-    if self.pred_action_steps_only:
-        start = To - 1
-        end = start + self.n_action_steps
-        trajectory = nactions[:,start:end]
-else:
-    # reshape B, T, ... to B*T
-    this_nobs = dict_apply(nobs, lambda x: x.reshape(-1, *x.shape[2:]))
-    nobs_features = self.obs_encoder(this_nobs)
-    # reshape back to B, T, Do
-    nobs_features = nobs_features.reshape(batch_size, horizon, -1)
-    trajectory = torch.cat([nactions, nobs_features], dim=-1).detach()
-
-# generate impainting mask
-if self.pred_action_steps_only:
-    condition_mask = torch.zeros_like(trajectory, dtype=torch.bool)
-else:
-    condition_mask = self.mask_generator(trajectory.shape)
-```
-
 ### Visual Encoder 
 
 In order to get `cond`, here has a <span id="obs_encoder">obs_encoder</span> to get features from observations, including images and states staff.
@@ -533,6 +503,36 @@ def compute_loss(self, batch):
     loss = loss.mean()
     return loss
 ```
+
+**TRAINING: **Because we are using `To` steps of observations to do prediction, so first it obtain `this_nobs` from the first `To` of `nobs`. Then, `this_nobs` will be passed through `obs_encoder` to get its features, named `cond`. Conversely, if `obs_as_cond` is `False`, it will do condition through impainting. 
+
+```python
+""" TRAINING: How to generate `cond` """
+if self.obs_as_cond:
+    # reshape B, T, ... to B*T
+    this_nobs = dict_apply(nobs, lambda x: x[:,:To,...].reshape(-1,*x.shape[2:]))
+    nobs_features = self.obs_encoder(this_nobs)
+    # reshape back to B, T, Do
+    cond = nobs_features.reshape(batch_size, To, -1)
+    if self.pred_action_steps_only:
+        start = To - 1
+        end = start + self.n_action_steps
+        trajectory = nactions[:,start:end]
+else:
+    # reshape B, T, ... to B*T
+    this_nobs = dict_apply(nobs, lambda x: x.reshape(-1, *x.shape[2:]))
+    nobs_features = self.obs_encoder(this_nobs)
+    # reshape back to B, T, Do
+    nobs_features = nobs_features.reshape(batch_size, horizon, -1)
+    trajectory = torch.cat([nactions, nobs_features], dim=-1).detach()
+
+# generate impainting mask
+if self.pred_action_steps_only:
+    condition_mask = torch.zeros_like(trajectory, dtype=torch.bool)
+else:
+    condition_mask = self.mask_generator(trajectory.shape)
+```
+
 
 ## Inference
 
