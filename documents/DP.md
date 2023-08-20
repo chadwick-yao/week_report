@@ -199,13 +199,17 @@ training:
 
 ## Training
 
-### Transformer Network Structure
+### Network Structure
+
+## Transformer 
 
 <img src="assets/image_1.png" alt="transformer architecture"  />
 
 Transformer based on diffusion policy is actually one noise predictor. Take in noised data with some conditions, it can predict the noise in the data, and then restore its original data. 
 
 > The training process starts by randomly drawing unmodified examples, $x^0$, from the dataset. For each sample, we randomly select a denoising iteration k and them sample a random noise with appropriate variance for iteration k. The model is asked to predict the noise from the data sample with noise added.
+
+## Visual Encoder 
 
 In order to get `cond`, here has a <span id="obs_encoder">obs_encoder</span> to get features from observations, including images and states staff.
 
