@@ -670,9 +670,9 @@ variance = (self._get_variance(t, predicted_variance=predicted_variance) ** 0.5)
 
 3. The Visual Encoder is missing. Add it before the diffusion transformer.
 
-> done, see [obs_encoder](#obs_encoder)
+> done, see <a href="#obs_encoder">obs_encoder</a>
 
 4. The diffusion transformer adopts the architecture from the minGPT (check it out), which is a decoder-only variant of the Transformer. Modify the content accordingly.
 
-> See [Forward Details](#Forward Details)
+> See <a href="#Forward Details">Forward Details</a>
 
