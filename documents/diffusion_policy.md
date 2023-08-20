@@ -384,22 +384,16 @@ Two backends are qupported:
 
 Here it uses robomimic package to make an environment(EnvRobosuite) from metadata, and actually it still uses mujoco_py to create its environment.
 
+### How to realize a testing process?
+
+The key is the `env_runner`.
+
+n_train和n_test是需要执行的不同的环境，n_envs是所有要执行的环境，它是n_train和n_test之和的倍数，如果不是会进行Padding. 
+
+有两个env_fn，两者之间唯一的不同就是一个是会create OpenGL context (enable_render=True)另外一个则不会。
+
+对于train它的初始状态是直接从data/demo_x/states中取出来的，但是test是用seed进行重置的
 
 
 
-
-
-
-**Tasks can be implemented**
-
-- [x] visual push-t
-- [x] keypoints push-t
-
-- [ ] block pushing (no vision) :no_entry_sign:
-
-- [x] kitchen | being training -> mujoco
-- [ ] robomimic (maybe)
-  - [x] Lift
-  - [x] Square
-  - [ ] Can
-- [x] <font color='red'>Do Transformer Exp</font>
+在run的过程中，有一个global_slice和local_slice其实就是index的两种方式

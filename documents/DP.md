@@ -31,6 +31,46 @@ desired translation of EEF(3), desired delta rotation from current EEF(3), and o
 	shape: [7]
 ```
 
+**Dataset saved in HDF5 file**
+
+```yaml
+Group: /data/demo_0
+  Dataset: /data/demo_0/actions    shape: (127, 7)
+  Dataset: /data/demo_0/dones    shape: (127,)
+  Dataset: /data/demo_0/rewards    shape: (127,)
+  Dataset: /data/demo_0/states    shape: (127, 45)
+  Group: /data/demo_0/next_obs
+    Dataset: /data/demo_0/next_obs/agentview_image    shape: (127, 84, 84, 3)
+    Dataset: /data/demo_0/next_obs/object    shape: (127, 14)
+    Dataset: /data/demo_0/next_obs/robot0_eef_pos    shape: (127, 3)
+    Dataset: /data/demo_0/next_obs/robot0_eef_quat    shape: (127, 4)
+    Dataset: /data/demo_0/next_obs/robot0_eef_vel_ang    shape: (127, 3)
+    Dataset: /data/demo_0/next_obs/robot0_eef_vel_lin    shape: (127, 3)
+    Dataset: /data/demo_0/next_obs/robot0_eye_in_hand_image    shape: (127, 84, 84, 3)
+    Dataset: /data/demo_0/next_obs/robot0_gripper_qpos    shape: (127, 2)
+    Dataset: /data/demo_0/next_obs/robot0_gripper_qvel    shape: (127, 2)
+    Dataset: /data/demo_0/next_obs/robot0_joint_pos    shape: (127, 7)
+    Dataset: /data/demo_0/next_obs/robot0_joint_pos_cos    shape: (127, 7)
+    Dataset: /data/demo_0/next_obs/robot0_joint_pos_sin    shape: (127, 7)
+    Dataset: /data/demo_0/next_obs/robot0_joint_vel    shape: (127, 7)
+  Group: /data/demo_0/obs
+    Dataset: /data/demo_0/obs/agentview_image    shape: (127, 84, 84, 3)
+    Dataset: /data/demo_0/obs/object    shape: (127, 14)
+    Dataset: /data/demo_0/obs/robot0_eef_pos    shape: (127, 3)
+    Dataset: /data/demo_0/obs/robot0_eef_quat    shape: (127, 4)
+    Dataset: /data/demo_0/obs/robot0_eef_vel_ang    shape: (127, 3)
+    Dataset: /data/demo_0/obs/robot0_eef_vel_lin    shape: (127, 3)
+    Dataset: /data/demo_0/obs/robot0_eye_in_hand_image    shape: (127, 84, 84, 3)
+    Dataset: /data/demo_0/obs/robot0_gripper_qpos    shape: (127, 2)
+    Dataset: /data/demo_0/obs/robot0_gripper_qvel    shape: (127, 2)
+    Dataset: /data/demo_0/obs/robot0_joint_pos    shape: (127, 7)
+    Dataset: /data/demo_0/obs/robot0_joint_pos_cos    shape: (127, 7)
+    Dataset: /data/demo_0/obs/robot0_joint_pos_sin    shape: (127, 7)
+    Dataset: /data/demo_0/obs/robot0_joint_vel    shape: (127, 7)
+```
+
+
+
 ## HyperParameters
 
 DDMP algorithm hyperparameters of policy, it can affect the denoising performance.
@@ -199,13 +239,20 @@ training:
 
 ## Training
 
-### Transformer Network Structure
+### Network Structure
+
+#### Transformer 
 
 <img src="assets/image_1.png" alt="transformer architecture"  />
 
 Transformer based on diffusion policy is actually one noise predictor. Take in noised data with some conditions, it can predict the noise in the data, and then restore its original data. 
 
 > The training process starts by randomly drawing unmodified examples, $x^0$, from the dataset. For each sample, we randomly select a denoising iteration k and them sample a random noise with appropriate variance for iteration k. The model is asked to predict the noise from the data sample with noise added.
+
+> `cond` denotes observations' features. The default value of `cond` is `None`, but when `obs_as_cond` is set `True`, which means the model would take observation as a condition, and the detailed procedures are below. 
+
+
+#### Visual Encoder 
 
 In order to get `cond`, here has a <span id="obs_encoder">obs_encoder</span> to get features from observations, including images and states staff.
 
@@ -368,7 +415,6 @@ x = self.decoder(
 
 > Except for transformer network, it also has a obs_encoder, which is designed to extract features from observations. And the extracted features is defined as `cond` below.
 
-`cond` denotes observations' features. The default value of `cond` is `None`, but when `obs_as_cond` is set `True`, which means the model would take observation as a condition, and the detailed procedures are below. 
 
 **TRAINING: **Because we are using `To` steps of observations to do prediction, so first it obtain `this_nobs` from the first `To` of `nobs`. Then, `this_nobs` will be passed through `obs_encoder` to get its features, named `cond`. Conversely, if `obs_as_cond` is `False`, it will do condition through impainting. 
 
@@ -648,13 +694,11 @@ pred_prev_sample = pred_prev_sample + variance
 
 ## Comments
 
-1. What are the values of alpha, gamma in the denoising process?
-
-![image-20230820105137202](assets/image-20230820105137202.png)
+1. Specify the values of alpha, gamma in the denoising process.
 
 > gamma is the learning rate. alpha is a weight to denote the importance of noise.
 
-2. What is the value of the variance for iteration k? 
+2. Specify the value of the variance for iteration k (with explanation).
 
 ```python
 # first sample a variance noise
@@ -665,8 +709,6 @@ variance = torch.clamp(variance, min=1e-20)
 # finally do 
 variance = (self._get_variance(t, predicted_variance=predicted_variance) ** 0.5) * variance_noise
 ```
-
-
 
 3. The Visual Encoder is missing. Add it before the diffusion transformer.
 
