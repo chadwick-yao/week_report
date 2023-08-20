@@ -207,6 +207,72 @@ Transformer based on diffusion policy is actually one noise predictor. Take in n
 
 > The training process starts by randomly drawing unmodified examples, $x^0$, from the dataset. For each sample, we randomly select a denoising iteration k and them sample a random noise with appropriate variance for iteration k. The model is asked to predict the noise from the data sample with noise added.
 
+In order to get `cond`, here has a `obs_encoder` to get features from observations, including images and states staff.
+
+```python
+from robomimic.algo import algo_factory
+from robomimic.algo.algo import PolicyAlgo
+policy: PolicyAlgo = algo_factory(
+        algo_name=config.algo_name,
+        config=config,
+        obs_key_shapes=obs_key_shapes,
+        ac_dim=action_dim,
+        device='cpu',
+    )
+obs_encoder = policy.nets['policy'].nets['encoder'].nets['obs']
+print(policy)
+'''
+============= Initialized Observation Utils with Obs Spec =============
+
+using obs modality: low_dim with keys: ['robot0_gripper_qpos', 'robot0_eef_pos', 'robot0_eef_quat']
+using obs modality: rgb with keys: ['robot0_eye_in_hand_image', 'agentview_image']
+using obs modality: depth with keys: []
+using obs modality: scan with keys: []
+ObservationKeyToModalityDict: mean not found, adding mean to mapping with assumed low_dim modality!
+ObservationKeyToModalityDict: scale not found, adding scale to mapping with assumed low_dim modality!
+ObservationKeyToModalityDict: logits not found, adding logits to mapping with assumed low_dim modality!
+BC_RNN_GMM (
+  ModuleDict(
+    (policy): RNNGMMActorNetwork(
+        action_dim=2, std_activation=softplus, low_noise_eval=True, num_nodes=5, min_std=0.0001
+  
+        encoder=ObservationGroupEncoder(
+            group=obs
+            ObservationEncoder(
+                output_shape=[0]
+            )
+        )
+  
+        rnn=RNN_Base(
+          (per_step_net): ObservationDecoder(
+              Key(
+                  name=mean
+                  shape=(5, 2)
+                  modality=low_dim
+                  net=(Linear(in_features=1000, out_features=10, bias=True))
+              )
+              Key(
+                  name=scale
+                  shape=(5, 2)
+                  modality=low_dim
+                  net=(Linear(in_features=1000, out_features=10, bias=True))
+              )
+              Key(
+                  name=logits
+                  shape=(5,)
+                  modality=low_dim
+                  net=(Linear(in_features=1000, out_features=5, bias=True))
+              )
+          )
+          (nets): LSTM(0, 1000, num_layers=2, batch_first=True)
+        )
+    )
+  )
+)
+
+'''
+```
+
 `Encoder` is designed to encode conditions, like `cond` and `timesteps`. `n_cond_layers` can be set in configuration files, and if it’s > 0, transformer encoder will replace MLP encoder. 
 
 `Decoder` takes in noised actions and encoded information, then predicts a noise with the same shape of X/sample.
@@ -251,7 +317,48 @@ self.decoder = nn.TransformerDecoder(
 )
 ```
 
+**Forward Details**
 
+Its structure is based on minGPT, which is decoder-only. Here it means that the input `X/sample` (noised actions) will only being processed by the transformer decoder, which means that it does not need to learning information from `X/sample` by encoder, conversely it just needs to do the noise prediction task by decoder. Details are below, encoder is to process `cond` and `timestep` only, and decoder is to process `X/sample` only.
+
+```python
+timesteps = timesteps.expand(sample.shape[0])
+time_emb = self.time_emb(timesteps).unsqueeze(1)
+# (B,1,n_emb)
+
+# process input
+input_emb = self.input_emb(sample)
+
+# encoder
+cond_embeddings = time_emb
+if self.obs_as_cond:
+    cond_obs_emb = self.cond_obs_emb(cond)
+    # (B,To,n_emb)
+    cond_embeddings = torch.cat([cond_embeddings, cond_obs_emb], dim=1)
+tc = cond_embeddings.shape[1]
+position_embeddings = self.cond_pos_emb[
+    :, :tc, :
+]  # each position maps to a (learnable) vector
+x = self.drop(cond_embeddings + position_embeddings)
+x = self.encoder(x)
+memory = x
+# (B,T_cond,n_emb)
+
+# decoder
+token_embeddings = input_emb
+t = token_embeddings.shape[1]
+position_embeddings = self.pos_emb[
+    :, :t, :
+]  # each position maps to a (learnable) vector
+x = self.drop(token_embeddings + position_embeddings)
+# (B,T,n_emb)
+x = self.decoder(
+    tgt=x,
+    memory=memory,
+    tgt_mask=self.mask,
+    memory_mask=self.memory_mask
+)
+```
 
 ### Inputs
 
@@ -542,9 +649,30 @@ pred_prev_sample = pred_prev_sample + variance
 ## Comments
 
 1. What are the values of alpha, gamma in the denoising process?
+
+![image-20230820105137202](assets/image-20230820105137202.png)
+
+> gamma is the learning rate. alpha is a weight to denote the importance of noise.
+
 2. What is the value of the variance for iteration k? 
+
+```python
+# first sample a variance noise
+variance_noise = torch.randn(model_output.shape, dtype=model_output.dtype, generator=generator)
+# use _get_variance to get variance of timestep k
+variance = (1 - alpha_prod_t_prev) / (1 - alpha_prod_t) * self.betas[t]
+variance = torch.clamp(variance, min=1e-20)
+# finally do 
+variance = (self._get_variance(t, predicted_variance=predicted_variance) ** 0.5) * variance_noise
+```
+
+
+
 3. The Visual Encoder is missing. Add it before the diffusion transformer.
+
+> done
+
 4. The diffusion transformer adopts the architecture from the minGPT (check it out), which is a decoder-only variant of the Transformer. Modify the content accordingly.
 
-
+> See Forward Details.
 
