@@ -139,7 +139,6 @@ The work I focused on this week is to continue to explore the paper from Stanfor
 - Q2: isaacgymenvs.make有问题
   - S2: 项目有对hydra的依赖，如果直接进行make一个环境会有问题，按照原项目的train函数进行模仿重新写一个train和inference的函数
 
-
 ## 2023/08/10～2023/08/16
 
 Diffusion Policy
@@ -151,3 +150,5 @@ Dataset数据集接口；EnvRunner执行Policy并产生结果；config/task/.yam
 实现inference部分以及训练部分过程；workspace实现training&evaluation；config/.yaml这个是policy的配置文件；
 
 - [ ] <font color='red'>使用ACT跑起来square和can</font>
+
+test实际上是通过env_runner实现的

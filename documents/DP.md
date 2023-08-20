@@ -43,7 +43,7 @@ Here inputs are quite crucial, `X/sample` is a sequence of noised action (its di
 
 The default value of `cond` is `None`, but when `obs_as_cond` is set `True`, which means the model would take observation as a condition, and the detailed procedures are below. 
 
-**TESTING:** Because we are using To steps of observations to do prediction, so first it obtain `this_nobs` from the firt To of `nobs`. Then, `this_nobs` will be passed through `obs_encoder` to get its features, named `cond`. Conversely, if `obs_as_cond` is `False`, it will do condition through impainting. 
+**TESTING:** Because we are using `To` steps of observations to do prediction, so first it obtain `this_nobs` from the first To of `nobs`. Then, `this_nobs` will be passed through `obs_encoder` to get its features, named `cond`. Conversely, if `obs_as_cond` is `False`, it will do condition through impainting. 
 
 **TRAINING: **the same.
 
