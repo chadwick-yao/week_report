@@ -209,6 +209,9 @@ Transformer based on diffusion policy is actually one noise predictor. Take in n
 
 > The training process starts by randomly drawing unmodified examples, $x^0$, from the dataset. For each sample, we randomly select a denoising iteration k and them sample a random noise with appropriate variance for iteration k. The model is asked to predict the noise from the data sample with noise added.
 
+> `cond` denotes observations' features. The default value of `cond` is `None`, but when `obs_as_cond` is set `True`, which means the model would take observation as a condition, and the detailed procedures are below. 
+
+
 #### Visual Encoder 
 
 In order to get `cond`, here has a <span id="obs_encoder">obs_encoder</span> to get features from observations, including images and states staff.
@@ -372,7 +375,6 @@ x = self.decoder(
 
 > Except for transformer network, it also has a obs_encoder, which is designed to extract features from observations. And the extracted features is defined as `cond` below.
 
-`cond` denotes observations' features. The default value of `cond` is `None`, but when `obs_as_cond` is set `True`, which means the model would take observation as a condition, and the detailed procedures are below. 
 
 **TRAINING: **Because we are using `To` steps of observations to do prediction, so first it obtain `this_nobs` from the first `To` of `nobs`. Then, `this_nobs` will be passed through `obs_encoder` to get its features, named `cond`. Conversely, if `obs_as_cond` is `False`, it will do condition through impainting. 
 
