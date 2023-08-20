@@ -249,11 +249,11 @@ Transformer based on diffusion policy is actually one noise predictor. Take in n
 
 Inputs:
 
-`X/sample` is a sequence of noised action (its dimension can be [bs, horizon, action_dim], [B, n_action_step, action_dim] or [bs, horizon, action_dim + obs_feature_dim]). 
+- `X/sample` is a sequence of noised action (its dimension can be [bs, horizon, action_dim], [B, n_action_step, action_dim] or [bs, horizon, action_dim + obs_feature_dim]).
 
-`timesteps` is the number of diffusion steps, for instance, if `timesteps=10` then it has 10 steps from the original sample. The greater the timesteps is, the more serious noise the data has.
+- `cond` denotes the observation feature. The default value of `cond` is `None`. 
 
-`cond` denotes observations' features. The default value of `cond` is `None`, but when `obs_as_cond` is set `True`, which means the model would take observation as a condition, and the detailed procedures are below. 
+- `timesteps` is the number of diffusion steps, for instance, if `timesteps=10` then it has 10 steps from the original sample. The greater the timesteps is, the more serious noise the data has.
 
 `Encoder` is designed to encode conditions, like `cond` and `timesteps`. `n_cond_layers` can be set in configuration files, and if it’s > 0, transformer encoder will replace MLP encoder. 
 
