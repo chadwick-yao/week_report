@@ -239,9 +239,7 @@ training:
 
 ## Training
 
-### Network Structure
-
-#### Transformer 
+### Transformer 
 
 <img src="assets/image_1.png" alt="transformer architecture"  />
 
@@ -252,7 +250,7 @@ Transformer based on diffusion policy is actually one noise predictor. Take in n
 > `cond` denotes observations' features. The default value of `cond` is `None`, but when `obs_as_cond` is set `True`, which means the model would take observation as a condition, and the detailed procedures are below. 
 
 
-#### Visual Encoder 
+### Visual Encoder 
 
 In order to get `cond`, here has a <span id="obs_encoder">obs_encoder</span> to get features from observations, including images and states staff.
 
