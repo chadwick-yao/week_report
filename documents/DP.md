@@ -247,76 +247,13 @@ Transformer based on diffusion policy is actually one noise predictor. Take in n
 
 > The training process starts by randomly drawing unmodified examples, $x^0$, from the dataset. For each sample, we randomly select a denoising iteration k and them sample a random noise with appropriate variance for iteration k. The model is asked to predict the noise from the data sample with noise added.
 
-> `cond` denotes observations' features. The default value of `cond` is `None`, but when `obs_as_cond` is set `True`, which means the model would take observation as a condition, and the detailed procedures are below. 
+Inputs:
 
+`X/sample` is a sequence of noised action (its dimension can be [bs, horizon, action_dim], [B, n_action_step, action_dim] or [bs, horizon, action_dim + obs_feature_dim]). 
 
-### Visual Encoder 
+`timesteps` is the number of diffusion steps, for instance, if `timesteps=10` then it has 10 steps from the original sample. The greater the timesteps is, the more serious noise the data has.
 
-In order to get `cond`, here has a <span id="obs_encoder">obs_encoder</span> to get features from observations, including images and states staff.
-
-```python
-from robomimic.algo import algo_factory
-from robomimic.algo.algo import PolicyAlgo
-policy: PolicyAlgo = algo_factory(
-        algo_name=config.algo_name,
-        config=config,
-        obs_key_shapes=obs_key_shapes,
-        ac_dim=action_dim,
-        device='cpu',
-    )
-obs_encoder = policy.nets['policy'].nets['encoder'].nets['obs']
-print(policy)
-'''
-============= Initialized Observation Utils with Obs Spec =============
-
-using obs modality: low_dim with keys: ['robot0_gripper_qpos', 'robot0_eef_pos', 'robot0_eef_quat']
-using obs modality: rgb with keys: ['robot0_eye_in_hand_image', 'agentview_image']
-using obs modality: depth with keys: []
-using obs modality: scan with keys: []
-ObservationKeyToModalityDict: mean not found, adding mean to mapping with assumed low_dim modality!
-ObservationKeyToModalityDict: scale not found, adding scale to mapping with assumed low_dim modality!
-ObservationKeyToModalityDict: logits not found, adding logits to mapping with assumed low_dim modality!
-BC_RNN_GMM (
-  ModuleDict(
-    (policy): RNNGMMActorNetwork(
-        action_dim=2, std_activation=softplus, low_noise_eval=True, num_nodes=5, min_std=0.0001
-  
-        encoder=ObservationGroupEncoder(
-            group=obs
-            ObservationEncoder(
-                output_shape=[0]
-            )
-        )
-  
-        rnn=RNN_Base(
-          (per_step_net): ObservationDecoder(
-              Key(
-                  name=mean
-                  shape=(5, 2)
-                  modality=low_dim
-                  net=(Linear(in_features=1000, out_features=10, bias=True))
-              )
-              Key(
-                  name=scale
-                  shape=(5, 2)
-                  modality=low_dim
-                  net=(Linear(in_features=1000, out_features=10, bias=True))
-              )
-              Key(
-                  name=logits
-                  shape=(5,)
-                  modality=low_dim
-                  net=(Linear(in_features=1000, out_features=5, bias=True))
-              )
-          )
-          (nets): LSTM(0, 1000, num_layers=2, batch_first=True)
-        )
-    )
-  )
-)
-
-'''
-```
+`cond` denotes observations' features. The default value of `cond` is `None`, but when `obs_as_cond` is set `True`, which means the model would take observation as a condition, and the detailed procedures are below. 
 
 `Encoder` is designed to encode conditions, like `cond` and `timesteps`. `n_cond_layers` can be set in configuration files, and if it’s > 0, transformer encoder will replace MLP encoder. 
 
@@ -405,15 +342,6 @@ x = self.decoder(
 )
 ```
 
-### Inputs
-
-`X/sample` is a sequence of noised action (its dimension can be [bs, horizon, action_dim], [B, n_action_step, action_dim] or [bs, horizon, action_dim + obs_feature_dim]). 
-
-`timesteps` is the number of diffusion steps, for instance, if `timesteps=10` then it has 10 steps from the original sample. The greater the timesteps is, the more serious noise the data has.
-
-> Except for transformer network, it also has a obs_encoder, which is designed to extract features from observations. And the extracted features is defined as `cond` below.
-
-
 **TRAINING: **Because we are using `To` steps of observations to do prediction, so first it obtain `this_nobs` from the first `To` of `nobs`. Then, `this_nobs` will be passed through `obs_encoder` to get its features, named `cond`. Conversely, if `obs_as_cond` is `False`, it will do condition through impainting. 
 
 ```python
@@ -443,6 +371,73 @@ else:
     condition_mask = self.mask_generator(trajectory.shape)
 ```
 
+### Visual Encoder 
+
+In order to get `cond`, here has a <span id="obs_encoder">obs_encoder</span> to get features from observations, including images and states staff.
+
+```python
+from robomimic.algo import algo_factory
+from robomimic.algo.algo import PolicyAlgo
+policy: PolicyAlgo = algo_factory(
+        algo_name=config.algo_name,
+        config=config,
+        obs_key_shapes=obs_key_shapes,
+        ac_dim=action_dim,
+        device='cpu',
+    )
+obs_encoder = policy.nets['policy'].nets['encoder'].nets['obs']
+print(policy)
+'''
+============= Initialized Observation Utils with Obs Spec =============
+
+using obs modality: low_dim with keys: ['robot0_gripper_qpos', 'robot0_eef_pos', 'robot0_eef_quat']
+using obs modality: rgb with keys: ['robot0_eye_in_hand_image', 'agentview_image']
+using obs modality: depth with keys: []
+using obs modality: scan with keys: []
+ObservationKeyToModalityDict: mean not found, adding mean to mapping with assumed low_dim modality!
+ObservationKeyToModalityDict: scale not found, adding scale to mapping with assumed low_dim modality!
+ObservationKeyToModalityDict: logits not found, adding logits to mapping with assumed low_dim modality!
+BC_RNN_GMM (
+  ModuleDict(
+    (policy): RNNGMMActorNetwork(
+        action_dim=2, std_activation=softplus, low_noise_eval=True, num_nodes=5, min_std=0.0001
+  
+        encoder=ObservationGroupEncoder(
+            group=obs
+            ObservationEncoder(
+                output_shape=[0]
+            )
+        )
+  
+        rnn=RNN_Base(
+          (per_step_net): ObservationDecoder(
+              Key(
+                  name=mean
+                  shape=(5, 2)
+                  modality=low_dim
+                  net=(Linear(in_features=1000, out_features=10, bias=True))
+              )
+              Key(
+                  name=scale
+                  shape=(5, 2)
+                  modality=low_dim
+                  net=(Linear(in_features=1000, out_features=10, bias=True))
+              )
+              Key(
+                  name=logits
+                  shape=(5,)
+                  modality=low_dim
+                  net=(Linear(in_features=1000, out_features=5, bias=True))
+              )
+          )
+          (nets): LSTM(0, 1000, num_layers=2, batch_first=True)
+        )
+    )
+  )
+)
+
+'''
+```
 
 
 ### Loss Function
