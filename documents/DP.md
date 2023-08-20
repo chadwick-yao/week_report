@@ -207,7 +207,7 @@ Transformer based on diffusion policy is actually one noise predictor. Take in n
 
 > The training process starts by randomly drawing unmodified examples, $x^0$, from the dataset. For each sample, we randomly select a denoising iteration k and them sample a random noise with appropriate variance for iteration k. The model is asked to predict the noise from the data sample with noise added.
 
-In order to get `cond`, here has a <span id="obs_encoder"></span> to get features from observations, including images and states staff.
+In order to get `cond`, here has a <span id="obs_encoder">obs_encoder</span> to get features from observations, including images and states staff.
 
 ```python
 from robomimic.algo import algo_factory
@@ -317,7 +317,7 @@ self.decoder = nn.TransformerDecoder(
 )
 ```
 
-<span id="Forward Details"></span>
+<span id="Forward Details">Forward Details</span>
 
 Its structure is based on minGPT, which is decoder-only. Here it means that the input `X/sample` (noised actions) will only being processed by the transformer decoder, which means that it does not need to learning information from `X/sample` by encoder, conversely it just needs to do the noise prediction task by decoder. Details are below, encoder is to process `cond` and `timestep` only, and decoder is to process `X/sample` only.
 
