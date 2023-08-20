@@ -1,4 +1,4 @@
-# DDPM
+# Diffusion Policy
 
 ## Data
 
