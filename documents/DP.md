@@ -2,36 +2,9 @@
 
 ## Data
 
-:arrow_forward: **observation**
+:arrow_forward: **Original Data in HDF5 File**
 
-Here observation includes an agent view image, a robot image from its hand, end effector's positions and quaternion, and robot gripper positions. 
-
-```tex
-agentview_image:
-  shape: [3, 84, 84]
-  type: rgb
-robot0_eye_in_hand_image:
-  shape: [3, 84, 84]
-  type: rgb
-robot0_eef_pos:
-  shape: [3]
-  # type default: low_dim
-robot0_eef_quat:
-  shape: [4]
-robot0_gripper_qpos:
-  shape: [2]
-```
-
-:arrow_forward: **action**
-
-The first three dimension of action is to describe end effector's position change, and the subsequent three dimension is to illustrate rotation change, and the last dimension is to record gripper's status.
-
-```
-desired translation of EEF(3), desired delta rotation from current EEF(3), and opening and closing of the gripper fingers:
-	shape: [7]
-```
-
-**Dataset saved in HDF5 file**
+The official provides dataset in `hdf5` format. The `hdf5` file saves many stuffs of demonstrations, such as actions, dones(whether the episode is done), rewards, states(vectors describing the robot states), and obs. However, for training the policy, here just uses a part of this dataset.
 
 ```yaml
 Group: /data/demo_0
@@ -67,6 +40,35 @@ Group: /data/demo_0
     Dataset: /data/demo_0/obs/robot0_joint_pos_cos    shape: (127, 7)
     Dataset: /data/demo_0/obs/robot0_joint_pos_sin    shape: (127, 7)
     Dataset: /data/demo_0/obs/robot0_joint_vel    shape: (127, 7)
+```
+
+:arrow_forward: **observation** 
+
+Here observation includes an agent view image, a robot image from its hand, end effector's positions and quaternion, and robot gripper positions. 
+
+```tex
+agentview_image:
+  shape: [3, 84, 84]
+  type: rgb
+robot0_eye_in_hand_image:
+  shape: [3, 84, 84]
+  type: rgb
+robot0_eef_pos:
+  shape: [3]
+  # type default: low_dim
+robot0_eef_quat:
+  shape: [4]
+robot0_gripper_qpos:
+  shape: [2]
+```
+
+:arrow_forward: **action**
+
+The first three dimension of action is to describe end effector's position change, and the subsequent three dimension is to illustrate rotation change, and the last dimension is to record gripper's status.
+
+```
+desired translation of EEF(3), desired delta rotation from current EEF(3), and opening and closing of the gripper fingers:
+	shape: [7]
 ```
 
 
