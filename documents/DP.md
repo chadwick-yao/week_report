@@ -241,101 +241,258 @@ training:
 
 ## Training
 
-### Transformer 
+```yaml
+obs:
+	agentview_image:
+		shape: [bs, T, 3, 84, 84]
+		type: rgb
+	robot0_eye_in_hand_image:
+		shape: [bs, T, 3, 84, 84]
+		type: rgb
+	robot0_eef_pos:
+		shape: [bs, T, 3]
+	robot0_eef_quat:
+		shape: [bs, T, 4]
+	robot0_gripper_qpos:
+		shape: [bs, T, 2]
+action: 
+	shape: [bs, T, 7]
+timesteps:
+	shape: [1]
+```
 
-<img src="assets/image_1.png" alt="transformer architecture"  />
+![Overall Structure](DP/image_1.png)
 
-Transformer based on diffusion policy is actually one noise predictor. Take in noised data with some conditions, it can predict the noise in the data, and then restore its original data. 
-
-> The training process starts by randomly drawing unmodified examples, $x^0$, from the dataset. For each sample, we randomly select a denoising iteration k and them sample a random noise with appropriate variance for iteration k. The model is asked to predict the noise from the data sample with noise added.
-
-Inputs:
-
-- `X/sample` is a sequence of noised action (its dimension can be [bs, horizon, action_dim], [B, n_action_step, action_dim] or [bs, horizon, action_dim + obs_feature_dim]).
-
-- `cond` denotes the observation feature. The default value of `cond` is `None`. 
-
-- `timesteps` is the number of diffusion steps. For instance, if `timesteps=10` then it has 10 steps from the original sample. 
-
-`Encoder` is designed to encode conditions, like `cond` and `timesteps`. `n_cond_layers` can be set in configuration files, and if it’s > 0, the transformer encoder will replace MLP encoder. 
-
-`Decoder` takes in noised actions and encoded information, then predicts a noise with the same shape of X/sample.
-
-Both transformer encoder and decoder are using torch.nn module, their module structure is shown below.
+The picture above describes the overall structure of the training process. We need 3 types of inputs whose definition is introduced in the above code box. Before passing to transformer block, we do preprocessing, like adding noise to action, generating timesteps randomly, and using `obs_encoder` to extract features from observations.
 
 ```python
-self.cond_pos_emb = nn.Parameter(torch.zeros(1, T_cond, n_emb))
-if n_cond_layers > 0:
-    encoder_layer = nn.TransformerEncoderLayer(
-        d_model=n_emb,
-        nhead=n_head,
-        dim_feedforward=4*n_emb,
-        dropout=p_drop_attn,
-        activation='gelu',
-        batch_first=True,
-        norm_first=True
+""" 1. normalize obs & action -> nobs & naction """
+nobs = self.normalizer.normalize(batch['obs'])
+nactions = self.normalizer['action'].normalize(batch['action'])
+trajectory = nactions
+
+""" 2. take the subsequence of the first To in nobs and do feature extraction with obs_encoder """
+# reshape B, T, ... to B*T
+this_nobs = dict_apply(nobs, lambda x: x[:,:To,...].reshape(-1,*x.shape[2:]))
+nobs_features = self.obs_encoder(this_nobs)
+# reshape back to B, T, Do
+cond = nobs_features.reshape(batch_size, To, -1)
+
+""" 3. add noise to actions """
+noise = torch.randn(trajectory.shape, device=trajectory.device)
+# Add noise to the clean images according to the noise magnitude at each timestep
+# (this is the forward diffusion process)
+noisy_trajectory = self.noise_scheduler.add_noise(
+    trajectory, noise, timesteps)
+
+""" 4. generate timesteps randomly """
+bsz = trajectory.shape[0]
+# Sample a random timestep for each image
+timesteps = torch.randint(
+    0, self.noise_scheduler.config.num_train_timesteps, 
+    (bsz,), device=trajectory.device
+).long()
+```
+
+Step 2 can be explained in <a href="#visual encoder">Visual Encoder</a>.
+
+Step 3 can be explained in <a href="#add noise">Add Noise</a>.
+
+### <span id="visual encoder">Visual Encoder</span> (how obs_encoder extract features from obs)
+
+In order to get `cond`, here has a <span id="obs_encoder">obs_encoder</span> to get features from observations, including images and robot states staff. The encoder is from `robomimic` package, which is a `ObservationGroupEncoder` class below. This class is designed to process multiple observations, so one of its arguments is `observation_group_shapes`, which describes shapes of every observation. And here lists one example of this. 
+
+```python
+"""
+example of observation_group_shapes:
+
+OrderedDict([('obs', 
+		OrderedDict([
+			('agentview_image', [3, 84, 84]), 
+			('robot0_eye_in_hand_image', [3, 84, 84]), 
+			('robot0_eef_pos', [3]), 
+			('robot0_eef_quat', [4]), 
+			('robot0_gripper_qpos', [2])
+			]))])
+"""
+class ObservationsGroupEncoder(Module):
+    """
+    This class allows networks to encode multiple observation dictionaries into a single flat, concatenated vector representation.
+    It does this by assigning each observation dictionary (observation group) an @ObservationEncoder Object.
+    
+    This class takes a dictionary of dictionaries, @observation_group_shapes.
+    Each key corresponds to an observation group (e.g. 'obs', 'subgoal', 'goal')
+    and each OrderedDict should be a map between modalities and expected input shape (e.g. {'image': (3, 120, 160)})
+    """
+    def __init__(
+    	self,
+        observation_group_shapes,
+        feature_activation=nn.ReLU,
+        encoder_kwargs=None,):
+        """
+        Args:
+        	observation_group_shapes (OrderedDict): a dictionary of dictionaries.
+        		Each key in this dictionary should specify an observation group,
+        		and the value should be an OrderedDict that maps modalities to expected shapes.
+        	
+        	feature_activation: non-linearity to apply after each obs net - defaults to ReLU.
+        	
+        	encoder_kwargs (dict or None): If None, results in default encoder_kwargs being applied.
+        		Otherwise, should be nested dictionary containing relevant per-modality information for encoder networks.
+        		
+        		should be of form:
+        		
+        		obs_modality1: dict
+        			feature_dimension: int
+        			core_class: str
+        			core_kwargs: dict
+        				...
+        				...
+        			obs_randomizer_class: str
+        			obs_randomizer_kwargs: dict
+        				...
+        				...
+        		obs_modality2: dict
+        			...
+        	"""
+        	self.observation_group_shapes = observation_group_shapes
+            # create an observation encoder per observation group
+```
+
+Because it can process multiple observations, which means that it has multiple networks for different inputs. Here we have 5 observations, so we have 5 networks. Take agentview_image as an example, its network is established with backbone (resnet18) and pool layers. For such robot0_eef_pos low dimension observation, its network is None. Noticeably, every network here will turn the observation into a 2-dim vector, i.e. [batch_size, output_shape]. Finally, we concatenate all outputs in `dim=1`, so here is [batch_size, 64+64+3+4+2], i.e. [batch_size, 137].
+
+```txt
+ObservationEncoder(
+    Key(
+        name=agentview_image
+        shape=[3, 84, 84]
+        modality=rgb
+        randomizer=CropRandomizer(input_shape=[3, 84, 84], crop_size=[76, 76], num_crops=1)
+        net=VisualCore(
+          input_shape=[3, 76, 76]
+          output_shape=[64]
+          backbone_net=ResNet18Conv(input_channel=3, input_coord_conv=False)
+          pool_net=SpatialSoftmax(num_kp=32, temperature=1.0, noise=0.0)
+        )
+        sharing_from=None
     )
-    self.encoder = nn.TransformerEncoder(
-        encoder_layer=encoder_layer,
-        num_layers=n_cond_layers
+    Key(
+        name=robot0_eye_in_hand_image
+        shape=[3, 84, 84]
+        modality=rgb
+        randomizer=CropRandomizer(input_shape=[3, 84, 84], crop_size=[76, 76], num_crops=1)
+        net=VisualCore(
+          input_shape=[3, 76, 76]
+          output_shape=[64]
+          backbone_net=ResNet18Conv(input_channel=3, input_coord_conv=False)
+          pool_net=SpatialSoftmax(num_kp=32, temperature=1.0, noise=0.0)
+        )
+        sharing_from=None
     )
-else:
-    self.encoder = nn.Sequential(
-        nn.Linear(n_emb, 4 * n_emb),
-        nn.Mish(),
-        nn.Linear(4 * n_emb, n_emb)
+    Key(
+        name=robot0_eef_pos
+        shape=[3]
+        modality=low_dim
+        randomizer=None
+        net=None
+        sharing_from=None
     )
-# decoder
-decoder_layer = nn.TransformerDecoderLayer(
-    d_model=n_emb,
-    nhead=n_head,
-    dim_feedforward=4*n_emb,
-    dropout=p_drop_attn,
-    activation='gelu',
-    batch_first=True,
-    norm_first=True # important for stability
-)
-self.decoder = nn.TransformerDecoder(
-    decoder_layer=decoder_layer,
-    num_layers=n_layer
+    Key(
+        name=robot0_eef_quat
+        shape=[4]
+        modality=low_dim
+        randomizer=None
+        net=None
+        sharing_from=None
+    )
+    Key(
+        name=robot0_gripper_qpos
+        shape=[2]
+        modality=low_dim
+        randomizer=None
+        net=None
+        sharing_from=None
+    )
+    output_shape=[137]
 )
 ```
 
-<span id="Forward Details">Forward Details</span>
+The Visual Encoder is not pre-trained model, it will be train with transformer at the same time.
 
-Its structure is based on minGPT, which is decoder-only. Here it means that the input `X/sample` (noised actions) will only being processed by the transformer decoder, which means that it does not need to learning information from `X/sample` by encoder, conversely it just needs to do the noise prediction task by decoder. Details are below, encoder is to process `cond` and `timestep` only, and decoder is to process `X/sample` only.
+### <span id="add noise">Add Noise</span>
+
+The adding noise process can be computed through the formula below.
+
+$x_t=\sqrt{\overline{\alpha_t}}x_0+\sqrt{1-\overline{\alpha_t}}\epsilon$
+
+$x_0$ is the original sample, $\epsilon$ is the noise. $\beta_t $ is the forward process variances of timestep $t$. And it has $\alpha_t=1-\beta_t$. So the add_noise function can be displayed below.
 
 ```python
-timesteps = timesteps.expand(sample.shape[0])
-time_emb = self.time_emb(timesteps).unsqueeze(1)
-# (B,1,n_emb)
+def add_noise(original_samples, noise, timesteps):
+    sqrt_alpha_prod = alphas_cumprod[timesteps] ** 0.5
+    sqrt_one_minus_alpha_prod = (1 - alphas_cumprod[timesteps]) ** 0.5
+    
+    noise_samples = sqrt_alpha_prod * original_samples + sqrt_one_minus_alpha_prod * noise
+    return noise_samples
+```
 
-# process input
+### Transformer 
+
+![Overall Structure](DP/image_1.png)
+
+Transformer based on diffusion policy is actually one noise predictor. Take in noised data with some conditions, it can predict the noise in the data, and then restore its original data. 
+
+The transformer can be seen in the blue dash box in the picture above. After data preprocessing, we have noised sample/actions, obs_features/cond, and timesteps generated randomly as inputs.
+
+Inputs:
+
+- `sample` is a sequence of noised actions.
+
+- `cond` denotes the observation feature. 
+
+- `timesteps` is the number of diffusion steps. 
+
+`Encoder` is designed to  encode observation features and timesteps. `n_cond_layers` is a hyperparameter that can be set in configuration files, and if it’s > 0, the transformer encoder will replace MLP encoder. 
+
+`Decoder` takes in noised actions and encoded information, then predicts a noise with the same shape of X/sample as output.
+
+Both transformer encoder and decoder are using torch.nn module, and the transformer forward computation is shown in the code box below.
+
+> Its structure is based on minGPT, which is decoder-only. Here it means that the input `sample` (noised actions) will only being processed by the transformer decoder, which means that it does not need to learning information from `sample` by encoder, conversely it just needs to do the noise prediction task by decoder. Details are below, encoder is to process `cond` and `timestep` only, and decoder is to process `sample` only.
+
+```python
+"""
+input arguments:
+	sample: A sequence of noised actions.
+	cond: Observation features.
+	timesteps: diffusion step.
+"""
+# 1. inputs embedding
+time_emb = self.time_emb(timesteps)
 input_emb = self.input_emb(sample)
+cond_obs_emb = self.cond_obs_emb(cond)
 
-# encoder
-cond_embeddings = time_emb
-if self.obs_as_cond:
-    cond_obs_emb = self.cond_obs_emb(cond)
-    # (B,To,n_emb)
-    cond_embeddings = torch.cat([cond_embeddings, cond_obs_emb], dim=1)
+# 2. prepare transformer encoder inputs, including concatenating and adding position embeddings.
+cond_embeddings = torch.cat([time_emb, cond_obs_emb], dim=1)
 tc = cond_embeddings.shape[1]
 position_embeddings = self.cond_pos_emb[
     :, :tc, :
 ]  # each position maps to a (learnable) vector
 x = self.drop(cond_embeddings + position_embeddings)
+
+# 3. process encoder inputs by encoder
 x = self.encoder(x)
 memory = x
-# (B,T_cond,n_emb)
 
-# decoder
+# 4. prepare decoder inputs - embedded sample + position embedding
 token_embeddings = input_emb
 t = token_embeddings.shape[1]
 position_embeddings = self.pos_emb[
     :, :t, :
 ]  # each position maps to a (learnable) vector
 x = self.drop(token_embeddings + position_embeddings)
-# (B,T,n_emb)
+
+# 5. using preprocessed sample and condition information to predict noise by decoder
 x = self.decoder(
     tgt=x,
     memory=memory,
@@ -343,233 +500,46 @@ x = self.decoder(
     memory_mask=self.memory_mask
 )
 ```
-### Visual Encoder 
-
-In order to get `cond`, here has a <span id="obs_encoder">obs_encoder</span> to get features from observations, including images and states staff.
-
-```python
-from robomimic.algo import algo_factory
-from robomimic.algo.algo import PolicyAlgo
-policy: PolicyAlgo = algo_factory(
-        algo_name=config.algo_name,
-        config=config,
-        obs_key_shapes=obs_key_shapes,
-        ac_dim=action_dim,
-        device='cpu',
-    )
-obs_encoder = policy.nets['policy'].nets['encoder'].nets['obs']
-print(policy)
-'''
-============= Initialized Observation Utils with Obs Spec =============
-
-using obs modality: low_dim with keys: ['robot0_gripper_qpos', 'robot0_eef_pos', 'robot0_eef_quat']
-using obs modality: rgb with keys: ['robot0_eye_in_hand_image', 'agentview_image']
-using obs modality: depth with keys: []
-using obs modality: scan with keys: []
-ObservationKeyToModalityDict: mean not found, adding mean to mapping with assumed low_dim modality!
-ObservationKeyToModalityDict: scale not found, adding scale to mapping with assumed low_dim modality!
-ObservationKeyToModalityDict: logits not found, adding logits to mapping with assumed low_dim modality!
-BC_RNN_GMM (
-  ModuleDict(
-    (policy): RNNGMMActorNetwork(
-        action_dim=2, std_activation=softplus, low_noise_eval=True, num_nodes=5, min_std=0.0001
-  
-        encoder=ObservationGroupEncoder(
-            group=obs
-            ObservationEncoder(
-                output_shape=[0]
-            )
-        )
-  
-        rnn=RNN_Base(
-          (per_step_net): ObservationDecoder(
-              Key(
-                  name=mean
-                  shape=(5, 2)
-                  modality=low_dim
-                  net=(Linear(in_features=1000, out_features=10, bias=True))
-              )
-              Key(
-                  name=scale
-                  shape=(5, 2)
-                  modality=low_dim
-                  net=(Linear(in_features=1000, out_features=10, bias=True))
-              )
-              Key(
-                  name=logits
-                  shape=(5,)
-                  modality=low_dim
-                  net=(Linear(in_features=1000, out_features=5, bias=True))
-              )
-          )
-          (nets): LSTM(0, 1000, num_layers=2, batch_first=True)
-        )
-    )
-  )
-)
-
-'''
-```
-
 
 ### Loss Function
 
-It uses a DDPM to approximate the conditional distribution $p(A_t|O_t)$ for planning. This formulation allows the model to predict actions conditioned on observations without the cost of inferring future states, speeding up the diffusion process and improving the accuracy of generated actions. To capture the conditional distribution,it has:
-
-$A_t^{k-1}=\alpha(A_t^k-\gamma \epsilon_{\theta}(O_t, A_t^k), k) + N(0, \sigma^2I)$
-
-Starting from $A^K$ sampled from Gaussian noise, the DDPM performs $K$ iterations of denoising to produce a series of intermediate actions with hdecreseing levels of noise $A^K, A^{K-1}... A^0$ until a desired noise-free output $A^0$ is formed. Where $\epsilon_{\theta}$ is the noise prediction network with parameter $\theta$ that will be optimized through learning and $N(0, \sigma^2I)$ is Gaussian noise added at each iteration.
-
-The training loss is below:
+The training loss is below, the goal is to train a policy $\epsilon_{\theta}$ to predict noise accurately:
 
 $Loss = MSE(\epsilon^k, \epsilon_{\theta}(O_t, A_t^0+\epsilon^k,k))$
 
 where $\epsilon^k$ is a random noise with appropriate variance for iteration k. $O_t$ is the observation features.
 
-> `compute_loss` is a method of policy, it is only used in training. However, when testing or doing rollout, it uses `predict_action`, another method of policy. With respect to compute_loss, now we have a original trajectory, first, we produce noise by torch.randn, whose shape is the same as the original trajectory. As talked in transformer model above, except for X/sample (here is trajectory) and `cond`, we also need `timesteps`, here it uses torch.randint. 
->
-> When we have noise, and all the required data, then it uses `noise_scheduler` (DDPM algorithm) to add noise in the original trajectory. And this process can be regarded as the forward, therefore, next step is the backward to predict noise with Diffusion Model (DM is actually a noise predictor.). Finally, we use MSE to calculate the loss. 
+After predicting noise by transformer, we got `pred_noise`. Then we use it to calculate training loss with the formula above. 
 
 ```python
-# this is how the model to calculate loss, and the loss function it uses is MSE_LOSS.
-def compute_loss(self, batch):
-    # normalize input
-    assert 'valid_mask' not in batch
-    nobs = self.normalizer.normalize(batch['obs'])
-    nactions = self.normalizer['action'].normalize(batch['action'])
-    batch_size = nactions.shape[0]
-    horizon = nactions.shape[1]
-    To = self.n_obs_steps
+# 1. Predict the noise residual
+pred_noise = self.model(noisy_trajectory, timesteps, cond)
 
-    # handle different ways of passing observation
-    cond = None
-    trajectory = nactions
-    if self.obs_as_cond:
-        # reshape B, T, ... to B*T
-        this_nobs = dict_apply(nobs, 
-            lambda x: x[:,:To,...].reshape(-1,*x.shape[2:]))
-        nobs_features = self.obs_encoder(this_nobs)
-        # reshape back to B, T, Do
-        cond = nobs_features.reshape(batch_size, To, -1)
-        if self.pred_action_steps_only:
-            start = To - 1
-            end = start + self.n_action_steps
-            trajectory = nactions[:,start:end]
-    else:
-        # reshape B, T, ... to B*T
-        this_nobs = dict_apply(nobs, lambda x: x.reshape(-1, *x.shape[2:]))
-        nobs_features = self.obs_encoder(this_nobs)
-        # reshape back to B, T, Do
-        nobs_features = nobs_features.reshape(batch_size, horizon, -1)
-        trajectory = torch.cat([nactions, nobs_features], dim=-1).detach()
-
-    # generate impainting mask
-    if self.pred_action_steps_only:
-        condition_mask = torch.zeros_like(trajectory, dtype=torch.bool)
-    else:
-        condition_mask = self.mask_generator(trajectory.shape)
-""" NOTE: the codes above has been introduced """
-    # Sample noise that we'll add to the images
-    noise = torch.randn(trajectory.shape, device=trajectory.device)
-    bsz = trajectory.shape[0]
-    # Sample a random timestep for each image
-    timesteps = torch.randint(
-        0, self.noise_scheduler.config.num_train_timesteps, 
-        (bsz,), device=trajectory.device
-    ).long()
-    # Add noise to the clean images according to the noise magnitude at each timestep
-    # (this is the forward diffusion process)
-    noisy_trajectory = self.noise_scheduler.add_noise(
-        trajectory, noise, timesteps)
-
-    # compute loss mask
-    loss_mask = ~condition_mask
-
-    # apply conditioning
-    noisy_trajectory[condition_mask] = trajectory[condition_mask]
-
-    # Predict the noise residual
-    pred = self.model(noisy_trajectory, timesteps, cond)
-
-    pred_type = self.noise_scheduler.config.prediction_type 
-    if pred_type == 'epsilon':
-        target = noise
-    elif pred_type == 'sample':
-        target = trajectory
-    else:
-        raise ValueError(f"Unsupported prediction type {pred_type}")
-
-    loss = F.mse_loss(pred, target, reduction='none')
-    loss = loss * loss_mask.type(loss.dtype)
-    loss = reduce(loss, 'b ... -> b (...)', 'mean')
-    loss = loss.mean()
-    return loss
-```
-
-**TRAINING: **Because we are using `To` steps of observations to do prediction, so first it obtain `this_nobs` from the first `To` of `nobs`. Then, `this_nobs` will be passed through `obs_encoder` to get its features, named `cond`. Conversely, if `obs_as_cond` is `False`, it will do condition through impainting. 
-
-```python
-""" TRAINING: How to generate `cond` """
-if self.obs_as_cond:
-    # reshape B, T, ... to B*T
-    this_nobs = dict_apply(nobs, lambda x: x[:,:To,...].reshape(-1,*x.shape[2:]))
-    nobs_features = self.obs_encoder(this_nobs)
-    # reshape back to B, T, Do
-    cond = nobs_features.reshape(batch_size, To, -1)
-    if self.pred_action_steps_only:
-        start = To - 1
-        end = start + self.n_action_steps
-        trajectory = nactions[:,start:end]
-else:
-    # reshape B, T, ... to B*T
-    this_nobs = dict_apply(nobs, lambda x: x.reshape(-1, *x.shape[2:]))
-    nobs_features = self.obs_encoder(this_nobs)
-    # reshape back to B, T, Do
-    nobs_features = nobs_features.reshape(batch_size, horizon, -1)
-    trajectory = torch.cat([nactions, nobs_features], dim=-1).detach()
-
-# generate impainting mask
-if self.pred_action_steps_only:
-    condition_mask = torch.zeros_like(trajectory, dtype=torch.bool)
-else:
-    condition_mask = self.mask_generator(trajectory.shape)
+# 2. calculate training loss
+loss = F.mse_loss(pred, target, reduction='none')
+loss = loss * loss_mask.type(loss.dtype)
+loss = reduce(loss, 'b ... -> b (...)', 'mean')
+loss = loss.mean()y
 ```
 
 
 ## Inference
 
-Being different from training, in testing or inference process, we do not exactly actions are, which means that the input `X/sample` is unknown argument. However, we can still get observations from the environment. So here, it uses `torch.randn` to generate a noised trajectory instead of adding noise in original actions like training.
+After we got a trained policy $\epsilon_{\theta}$. We use the following formula to inference.
+
+$A_t^{k-1}=\alpha(A_t^k-\gamma\epsilon_{\theta}(O_t,A_t^k,k)+N(0,\sigma^2I))$
 
 When doing inference/testing/rollout, it will use predict_action function of policy in `env_runner`. The difference between inference and training is that, it would not do backward to update parameters, secondly instead of just getting noise to compute loss, it uses `noise_scheduler.step` to acquire the original trajectory.
 
-First, we introduce how `env_runner` works. It uses `predict_action` and `env.step` to update the simulation until the task is done. 
+First, we introduce how `env_runner` works. We can simply decompose the simulation process into 2 steps, i.e. running policy to get predicted actions and stepping environment with predicted actions. 
+
+> Further, `env_runner` uses multiprocessing to achieve multiple environment to execute parallelly. And these simulation environments have 2 types - train and test. Here train type means the initial state is from original dataset, and test type means initial state is set randomly with a different seed.
 
 ```python
 while not done:
-    # create obs dict
-    np_obs_dict = dict(obs)
-    if self.past_action and (past_action is not None):
-        # TODO: not tested
-        np_obs_dict['past_action'] = past_action[
-            :,-(self.n_obs_steps-1):].astype(np.float32)
-
-    # device transfer
-    obs_dict = dict_apply(np_obs_dict, 
-        lambda x: torch.from_numpy(x).to(
-            device=device))
-
     # run policy
     with torch.no_grad():
         action_dict = policy.predict_action(obs_dict)
-
-    # device_transfer
-    np_action_dict = dict_apply(action_dict,
-        lambda x: x.detach().to('cpu').numpy())
-
-    action = np_action_dict['action']
-    if not np.all(np.isfinite(action)):
-        print(action)
-        raise RuntimeError("Nan or Inf action")
 
     # step env
     env_action = action
@@ -581,115 +551,31 @@ while not done:
     past_action = action
 ```
 
-Below is the details of how to implement `predict_action`. And the function `conditional_sample` presents the whole procedures. But compared to `compute_loss`, we can know that `condition_data` (all zero) in inference is `trajectory` (original actions) in training and `trajectory` (produced by torch.randn) in inference is `noisy_trajectory` (original actions + noise).
+Below is the details of how to implement predicting actions. 
 
 ```python
-# ========= inference  ============
-def conditional_sample(self, 
-        condition_data, condition_mask,
-        cond=None, generator=None,
-        # keyword arguments to scheduler.step
+# 1. randomly generate a trajectory.
+trajectory = torch.randn(
+    size=condition_data.shape, 
+    dtype=condition_data.dtype,
+    device=condition_data.device,
+    generator=generator)
+
+# 2. set step values
+scheduler.set_timesteps(self.num_inference_steps)
+
+# 3. use scheduler.step to get original trajectory in a loop
+for t in scheduler.timesteps:
+    # predict noise
+    model_output = model(trajectory, t, cond)
+
+    # compute previous image: x_t -> x_t-1
+    trajectory = scheduler.step(
+        model_output, t, trajectory, 
+        generator=generator,
         **kwargs
-        ):
-    model = self.model
-    scheduler = self.noise_scheduler
-
-    trajectory = torch.randn(
-        size=condition_data.shape, 
-        dtype=condition_data.dtype,
-        device=condition_data.device,
-        generator=generator)
-
-    # set step values
-    scheduler.set_timesteps(self.num_inference_steps)
-
-    for t in scheduler.timesteps:
-        # 1. apply conditioning
-        trajectory[condition_mask] = condition_data[condition_mask]
-
-        # 2. predict model output
-        model_output = model(trajectory, t, cond)
-
-        # 3. compute previous image: x_t -> x_t-1
-        trajectory = scheduler.step(
-            model_output, t, trajectory, 
-            generator=generator,
-            **kwargs
-            ).prev_sample
-
-    # finally make sure conditioning is enforced
-    trajectory[condition_mask] = condition_data[condition_mask]        
-
-    return trajectory
-
-def predict_action(self, obs_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
-    """
-    obs_dict: must include "obs" key
-    result: must include "action" key
-    """
-    assert 'past_action' not in obs_dict # not implemented yet
-    # normalize input
-    nobs = self.normalizer.normalize(obs_dict)
-    value = next(iter(nobs.values()))
-    B, To = value.shape[:2]
-    T = self.horizon
-    Da = self.action_dim
-    Do = self.obs_feature_dim
-    To = self.n_obs_steps
-
-    # build input
-    device = self.device
-    dtype = self.dtype
-
-    # handle different ways of passing observation
-    cond = None
-    cond_data = None
-    cond_mask = None
-    if self.obs_as_cond:
-        this_nobs = dict_apply(nobs, lambda x: x[:,:To,...].reshape(-1,*x.shape[2:]))
-        nobs_features = self.obs_encoder(this_nobs)
-        # reshape back to B, To, Do
-        cond = nobs_features.reshape(B, To, -1)
-        shape = (B, T, Da)
-        if self.pred_action_steps_only:
-            shape = (B, self.n_action_steps, Da)
-        cond_data = torch.zeros(size=shape, device=device, dtype=dtype)
-        cond_mask = torch.zeros_like(cond_data, dtype=torch.bool)
-    else:
-        # condition through impainting
-        this_nobs = dict_apply(nobs, lambda x: x[:,:To,...].reshape(-1,*x.shape[2:]))
-        nobs_features = self.obs_encoder(this_nobs)
-        # reshape back to B, T, Do
-        nobs_features = nobs_features.reshape(B, T, -1)
-        shape = (B, T, Da+Do)
-        cond_data = torch.zeros(size=shape, device=device, dtype=dtype)
-        cond_mask = torch.zeros_like(cond_data, dtype=torch.bool)
-        cond_data[:,:To,Da:] = nobs_features
-        cond_mask[:,:To,Da:] = True
-    # run sampling
-    nsample = self.conditional_sample(
-        cond_data, 
-        cond_mask,
-        cond=cond,
-        **self.kwargs)
-
-    # unnormalize prediction
-    naction_pred = nsample[...,:Da]
-    action_pred = self.normalizer['action'].unnormalize(naction_pred)
-
-    # get action
-    if self.pred_action_steps_only:
-        action = action_pred
-    else:
-        start = To - 1
-        end = start + self.n_action_steps
-        action = action_pred[:,start:end]
-
-    result = {
-        'action': action,
-        'action_pred': action_pred
-    }
-    return result
+    ).prev_sample    
+# finally we get trajectory_0
 ```
 
 Here is the algorithm of `noise_scheduler.step`. (x_t -> x_t-1)
@@ -704,6 +590,43 @@ pred_prev_sample = pred_original_sample_coeff * pred_original_sample + current_s
 # 6. Add noise
 pred_prev_sample = pred_prev_sample + variance
 ```
+
+## Issues on Different Ways of Passing Observations
+
+We know that observation features is a input of transformer, but actually it has 2 ways to pass observation features.
+
+**Regard Observations as Condition**
+
+This way means that, the observation features will be processed by transformer encoder first. Then pass it as conditions to decoder for noise prediction.
+
+```python
+cond = None
+trajectory = nactions
+
+# reshape B, T, ... to B*T
+this_nobs = dict_apply(nobs, lambda x: x[:,:To,...].reshape(-1,*x.shape[2:]))
+nobs_features = self.obs_encoder(this_nobs)
+# reshape back to B, To, Do
+cond = nobs_features.reshape(batch_size, To, -1)
+```
+
+Another way means that it would not pass the observation features to transformer encoder. Instead, it will regard the observation features as a part of sample. Here, we know that `cond` is set None, which proves that observation features are not passed to transformer encoder.
+
+```python
+cond = None
+trajectory = nactions
+
+# reshape B, T, ... to B*T
+this_nobs = dict_apply(nobs, lambda x: x.reshape(-1, *x.shape[2:]))
+nobs_features = self.obs_encoder(this_nobs)
+# reshape back to B, T, Do
+nobs_features = nobs_features.reshape(batch_size, horizon, -1)
+trajectory = torch.cat([nactions, nobs_features], dim=-1).detach()
+```
+
+> Here is my point. Looking back ACT model structure, we regard it as a conditional VAE because it not only uses latent code from ENCODER to generate, it also uses observations (camera images, joint positions/torques). We regard these observations as conditions, because they are all processed by transformer encoder, and then are passed to transformer decoder to impact its decoding process. So the second passing observation way here, may cannot regard observation as conditions. 
+>
+> However, the point of the second way, I guess, is to make the model not just to predict noise of actions, but also predict noise of observations, i.e. restoring actions and observations at the same time. It’s like only such observations, we do such specific actions. To some extent, the actions are connected to observations. 
 
 ## Comments
 
