@@ -239,7 +239,9 @@ training:
 
 ## Network Structure
 
-![overall structure](DP/network_structure.png)
+<div align="center">
+    <img align="center" src="DP/network_structure.png" />
+</div>
 
 The overall structure can be simplified as a picture above, which includes 3 modules, i.e. <a href="#pre-process">Pre-Process</a>, <a href="#visual encoder">Visual Encoder</a> and <a href="#transformer">Transformer</a>. And this article will discuss these parts in details below. 
 
@@ -358,12 +360,12 @@ class DiffusionTransformerHybridImagePolicy(BaseImagePolicy):
 - <span id="obs_features">obs_features</span>
 
   - definition: features extracted from observations
-
   - shape: [batch_size, 137]
-
   - type: tensor
 
-![](DP/visual.png)
+<div align="center">
+    <img align="center" src="DP/visual.png" />
+</div>
 
 As shown in the picture, for the specific tasks (square and can), the `obs` modality only has 2 types, i.e. rgb and low_dim. For the rgb type, like `agentview_image` and `robot0_eye_in_hand_image`, its network is assigned a ResNet18 network. However, as for low_dim type, it would not be assigned any network, which means that the low_dim type observations would not change at all even though they are processed by Visual Encoder.
 
@@ -456,6 +458,10 @@ class ObservationEncoder(nn.Module):
   - definition: Expected noise at timestep `timesteps` given `obs`
   - shape: [batch_size, horizon, 7]
   - type: tensor
+
+<div align="center">
+    <img align="center" src="DP/image_1.png" />
+</div>
 
 `Encoder` is designed to  encode observation features and timesteps. `n_cond_layers` is a hyperparameter that can be set in configuration files, and if it’s > 0, the transformer encoder will replace MLP encoder. 
 
