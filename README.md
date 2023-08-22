@@ -152,3 +152,10 @@ Dataset数据集接口；EnvRunner执行Policy并产生结果；config/task/.yam
 - [ ] <font color='red'>使用ACT跑起来square和can</font>
 
 test实际上是通过env_runner实现的
+
+完成ACT的移植有以下几个步骤：
+- [x] model
+- [ ] policy
+- [ ] workspace
+- [ ] env_runner
+- [ ] dataset 需要进行修改
