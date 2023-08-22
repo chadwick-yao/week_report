@@ -42,7 +42,7 @@ Group: /data/demo_0
     Dataset: /data/demo_0/obs/robot0_joint_vel    shape: (127, 7)
 ```
 
-### observation
+### <span id="obs shape">observation</span>
 
 Here observation includes an agent view image, a robot image from its hand, end effector's positions and quaternion, and robot gripper positions. 
 
@@ -237,187 +237,316 @@ training:
     tqdm_interval_sec: 1.0
 ```
 
+## Network Structure
 
+![overall structure](DP/network_structure.png)
 
-## Training
+The overall structure can be simplified as a picture above, which includes 3 modules, i.e. <a href="#pre-process">Pre-Process</a>, <a href="#visual encoder">Visual Encoder</a> and <a href="#transformer">Transformer</a>. And this article will discuss these parts in details below. 
+
+**INPUTS**
+
+- timesteps
+  - definition: diffusion step
+  - shape: [1]
+  - type: tensor
+- actions
+  - definition: original action sequence
+  - shape: [batch_size, horizon, 7]
+  - type: tensor
+- obs
+  - definition: observations
+  - shape: see below
+  - type: dict
 
 ```yaml
 obs:
 	agentview_image:
-		shape: [bs, T, 3, 84, 84]
+		shape: [batch_size, horizon, 3, 84, 84]
 		type: rgb
 	robot0_eye_in_hand_image:
-		shape: [bs, T, 3, 84, 84]
+		shape: [batch_size, horizon, 3, 84, 84]
 		type: rgb
 	robot0_eef_pos:
-		shape: [bs, T, 3]
+		shape: [batch_size, horizon, 3]
 	robot0_eef_quat:
-		shape: [bs, T, 4]
+		shape: [batch_size, horizon, 4]
 	robot0_gripper_qpos:
-		shape: [bs, T, 2]
-action: 
-	shape: [bs, T, 7]
-timesteps:
-	shape: [1]
+		shape: [batch_size, horizon, 2]
 ```
 
-![Overall Structure](DP/image_1.png)
+**OUTPUT**
 
-The picture above describes the overall structure of the training process. We need 3 types of inputs whose definition is introduced in the above code box. Before passing to transformer block, we do preprocessing, like adding noise to action, generating timesteps randomly, and using `obs_encoder` to extract features from observations.
+- pred_noise
+  - definition: Expected noise at timestep `timesteps` given `obs`
+  - shape: [batch_size, horizon, 7]
+  - type: tensor
+
+### <span id="pre-process">Pre-Process</span>
+
+**INPUTS**
+
+- timesteps
+  - definition: diffusion step
+  - shape: [1]
+  - type: tensor
+- actions
+  - definition: original action sequence
+  - shape: [batch_size, horizon, 7]
+  - type: tensor
+
+**OUTPUT**
+
+- <span id="expanded ts">expanded timesteps</span>
+  - definition: unified in dimension timestep
+  - shape: [batch_size]
+  - type: tensor
+- <span id="noised action">noised actions</span>:
+  - definition: actions with random noise
+  - shape: [batch_size, horizon, 7]
+  - type: tensor
+
+**Details**
+
+The pre-processing includes normalization, expanding timesteps in dimension and adding noise into actions. `num_train_timesteps` here is a hyperparameter.
+
+About adding noise details, you can find in <a href="#add noise">Add Noise</a>
 
 ```python
-""" 1. normalize obs & action -> nobs & naction """
-nobs = self.normalizer.normalize(batch['obs'])
-nactions = self.normalizer['action'].normalize(batch['action'])
-trajectory = nactions
+# diffusion_policy/policy/diffusion_transformer_hybrid_image_policy.py
+class DiffusionTransformerHybridImagePolicy(BaseImagePolicy):
+    # ......
+    def compute_loss(self, batch):
+        # normalize input
+        assert 'valid_mask' not in batch
+		# ......
+        nactions = self.normalizer['action'].normalize(batch['action'])
+        batch_size = nactions.shape[0]
+        horizon = nactions.shape[1]
+        
+		# ......
 
-""" 2. take the subsequence of the first To in nobs and do feature extraction with obs_encoder """
-# reshape B, T, ... to B*T
-this_nobs = dict_apply(nobs, lambda x: x[:,:To,...].reshape(-1,*x.shape[2:]))
-nobs_features = self.obs_encoder(this_nobs)
-# reshape back to B, T, Do
-cond = nobs_features.reshape(batch_size, To, -1)
-
-""" 3. add noise to actions """
-noise = torch.randn(trajectory.shape, device=trajectory.device)
-# Add noise to the clean images according to the noise magnitude at each timestep
-# (this is the forward diffusion process)
-noisy_trajectory = self.noise_scheduler.add_noise(
-    trajectory, noise, timesteps)
-
-""" 4. generate timesteps randomly """
-bsz = trajectory.shape[0]
-# Sample a random timestep for each image
-timesteps = torch.randint(
-    0, self.noise_scheduler.config.num_train_timesteps, 
-    (bsz,), device=trajectory.device
-).long()
+        # Sample noise that we'll add to the images
+        noise = torch.randn(trajectory.shape, device=trajectory.device)
+        bsz = trajectory.shape[0]
+        # Sample a random timestep for each image
+        timesteps = torch.randint(
+            0, self.noise_scheduler.config.num_train_timesteps, 
+            (bsz,), device=trajectory.device
+        ).long()
+        # Add noise to the clean images according to the noise magnitude at each timestep
+        # (this is the forward diffusion process)
+        noisy_trajectory = self.noise_scheduler.add_noise(
+            trajectory, noise, timesteps)
+        # ......
+	# ......
 ```
 
-Step 2 can be explained in <a href="#visual encoder">Visual Encoder</a>.
+### <span id="visual encoder">Visual Encoder</span>
 
-Step 3 can be explained in <a href="#add noise">Add Noise</a>.
+**INPUTs**
 
-### <span id="visual encoder">Visual Encoder</span> (how obs_encoder extract features from obs)
+- obs
 
-In order to get `cond`, here has a <span id="obs_encoder">obs_encoder</span> to get features from observations, including images and robot states staff. The encoder is from `robomimic` package, which is a `ObservationGroupEncoder` class below. This class is designed to process multiple observations, so one of its arguments is `observation_group_shapes`, which describes shapes of every observation. And here lists one example of this. 
+  - definition: observations
 
-```python
-"""
-example of observation_group_shapes:
+  - shape: see above
 
-OrderedDict([('obs', 
-		OrderedDict([
-			('agentview_image', [3, 84, 84]), 
-			('robot0_eye_in_hand_image', [3, 84, 84]), 
-			('robot0_eef_pos', [3]), 
-			('robot0_eef_quat', [4]), 
-			('robot0_gripper_qpos', [2])
-			]))])
-"""
-class ObservationsGroupEncoder(Module):
-    """
-    This class allows networks to encode multiple observation dictionaries into a single flat, concatenated vector representation.
-    It does this by assigning each observation dictionary (observation group) an @ObservationEncoder Object.
-    
-    This class takes a dictionary of dictionaries, @observation_group_shapes.
-    Each key corresponds to an observation group (e.g. 'obs', 'subgoal', 'goal')
-    and each OrderedDict should be a map between modalities and expected input shape (e.g. {'image': (3, 120, 160)})
-    """
-    def __init__(
-    	self,
-        observation_group_shapes,
-        feature_activation=nn.ReLU,
-        encoder_kwargs=None,):
-        """
-        Args:
-        	observation_group_shapes (OrderedDict): a dictionary of dictionaries.
-        		Each key in this dictionary should specify an observation group,
-        		and the value should be an OrderedDict that maps modalities to expected shapes.
-        	
-        	feature_activation: non-linearity to apply after each obs net - defaults to ReLU.
-        	
-        	encoder_kwargs (dict or None): If None, results in default encoder_kwargs being applied.
-        		Otherwise, should be nested dictionary containing relevant per-modality information for encoder networks.
-        		
-        		should be of form:
-        		
-        		obs_modality1: dict
-        			feature_dimension: int
-        			core_class: str
-        			core_kwargs: dict
-        				...
-        				...
-        			obs_randomizer_class: str
-        			obs_randomizer_kwargs: dict
-        				...
-        				...
-        		obs_modality2: dict
-        			...
-        	"""
-        	self.observation_group_shapes = observation_group_shapes
-            # create an observation encoder per observation group
-```
+  - type: dict
 
-Because it can process multiple observations, which means that it has multiple networks for different inputs. Here we have 5 observations, so we have 5 networks. Take agentview_image as an example, its network is established with backbone (resnet18) and pool layers. For such robot0_eef_pos low dimension observation, its network is None. Noticeably, every network here will turn the observation into a 2-dim vector, i.e. [batch_size, output_shape]. Finally, we concatenate all outputs in `dim=1`, so here is [batch_size, 64+64+3+4+2], i.e. [batch_size, 137].
+**OUTPUTs**
 
-```txt
-ObservationEncoder(
-    Key(
-        name=agentview_image
-        shape=[3, 84, 84]
-        modality=rgb
-        randomizer=CropRandomizer(input_shape=[3, 84, 84], crop_size=[76, 76], num_crops=1)
-        net=VisualCore(
-          input_shape=[3, 76, 76]
-          output_shape=[64]
-          backbone_net=ResNet18Conv(input_channel=3, input_coord_conv=False)
-          pool_net=SpatialSoftmax(num_kp=32, temperature=1.0, noise=0.0)
-        )
-        sharing_from=None
-    )
-    Key(
-        name=robot0_eye_in_hand_image
-        shape=[3, 84, 84]
-        modality=rgb
-        randomizer=CropRandomizer(input_shape=[3, 84, 84], crop_size=[76, 76], num_crops=1)
-        net=VisualCore(
-          input_shape=[3, 76, 76]
-          output_shape=[64]
-          backbone_net=ResNet18Conv(input_channel=3, input_coord_conv=False)
-          pool_net=SpatialSoftmax(num_kp=32, temperature=1.0, noise=0.0)
-        )
-        sharing_from=None
-    )
-    Key(
-        name=robot0_eef_pos
-        shape=[3]
-        modality=low_dim
-        randomizer=None
-        net=None
-        sharing_from=None
-    )
-    Key(
-        name=robot0_eef_quat
-        shape=[4]
-        modality=low_dim
-        randomizer=None
-        net=None
-        sharing_from=None
-    )
-    Key(
-        name=robot0_gripper_qpos
-        shape=[2]
-        modality=low_dim
-        randomizer=None
-        net=None
-        sharing_from=None
-    )
-    output_shape=[137]
-)
-```
+- <span id="obs_features">obs_features</span>
+
+  - definition: features extracted from observations
+
+  - shape: [batch_size, 137]
+
+  - type: tensor
+
+![](DP/visual.png)
+
+As shown in the picture, for the specific tasks (square and can), the `obs` modality only has 2 types, i.e. rgb and low_dim. For the rgb type, like `agentview_image` and `robot0_eye_in_hand_image`, its network is assigned a ResNet18 network. However, as for low_dim type, it would not be assigned any network, which means that the low_dim type observations would not change at all even though they are processed by Visual Encoder.
+
+Here is one table to describe the details of these different networks. `CropRondomizer` is designed to crop the original into preset shape (here is [76, 76]). And the Visual Encoder output can be obtained through concatenating all the output of multiple networks, i.e. [batch_size, 64+64+3+4+2] -> [batch_size, 137]
+
+| Name\|shape\|type                          | Randomizer     | Network\|IPT\|OPT           |
+| ------------------------------------------ | -------------- | --------------------------- |
+| agentview_image\|[3, 84, 84]\|rgb          | CropRandomizer | ResNet18\|[3, 76, 76]\|[64] |
+| robot0_eye_in_hand_image\|[3, 84, 84]\|rgb | CropRandomizer | ResNet18\|[3, 76, 76]\|[64] |
+| robot0_eef_pos\|[3]\|low_dim               | None           | None\|[3]\|[3]              |
+| robot0_eef_quat\|[4]\|low_dim              | None           | None\|[4]\|[4]              |
+| robot0_gripper_qpos\|[2]\|low_dim          | None           | None\|[2]\|[2]              |
 
 The Visual Encoder is not pre-trained model, it will be train with transformer at the same time.
+
+**Visual Encoder Forward Details** 
+
+```python
+# /home/shawn/mambaforge/envs/robodiff/lib/python3.9/site-packages/robomimic/models/obs_nets.py
+class ObservationEncoder(nn.Module):
+    # ......
+    def forward(self, obs_dict):
+        """
+        Processes modalities according to the ordering in @self.obs_shapes. For each
+        modality, it is processed with a randomizer (if present), an encoder
+        network (if present), and again with the randomizer (if present), flattened,
+        and then concatenated with the other processed modalities.
+
+        Args:
+            obs_dict (OrderedDict): dictionary that maps modalities to torch.Tensor
+                batches that agree with @self.obs_shapes. All modalities in
+                @self.obs_shapes must be present, but additional modalities
+                can also be present.
+
+        Returns:
+            feats (torch.Tensor): flat features of shape [B, D]
+        """
+        assert self._locked, "ObservationEncoder: @make has not been called yet"
+
+        # ensure all modalities that the encoder handles are present
+        assert set(self.obs_shapes.keys()).issubset(obs_dict), "ObservationEncoder: {} does not contain all modalities {}".format(
+            list(obs_dict.keys()), list(self.obs_shapes.keys())
+        )
+
+        # process modalities by order given by @self.obs_shapes
+        feats = []
+        for k in self.obs_shapes:
+            x = obs_dict[k]
+            # maybe process encoder input with randomizer
+            if self.obs_randomizers[k] is not None:
+                x = self.obs_randomizers[k].forward_in(x)
+            # maybe process with obs net
+            if self.obs_nets[k] is not None:
+                x = self.obs_nets[k](x)
+                if self.activation is not None:
+                    x = self.activation(x)
+            # maybe process encoder output with randomizer
+            if self.obs_randomizers[k] is not None:
+                x = self.obs_randomizers[k].forward_out(x)
+            # flatten to [B, D]
+            x = TensorUtils.flatten(x, begin_axis=1)
+            feats.append(x)
+
+        # concatenate all features together
+        return torch.cat(feats, dim=-1)
+```
+
+### Transformer 
+
+**INPUTs**
+
+- smaple
+  - definition: noised actions from <a href="#noised action">outputs</a> of Pre-Processing
+  - shape: [batch_size, horizon, 7]
+  - type: tensor
+
+- cond
+  - definition: observation features from <a href="#obs_features">outputs</a> of Visual Encoder
+  - shape: [batch_size, 137]
+  - type: tensor
+- timesteps
+  - definition: unified in dimension timestep from <a href="#expanded ts">outputs</a> of Pre-Processing
+  - shape: [batch_size]
+  - type: tensor
+
+
+**OUTPUT**
+
+- pred_noise
+  - definition: Expected noise at timestep `timesteps` given `obs`
+  - shape: [batch_size, horizon, 7]
+  - type: tensor
+
+`Encoder` is designed to  encode observation features and timesteps. `n_cond_layers` is a hyperparameter that can be set in configuration files, and if it’s > 0, the transformer encoder will replace MLP encoder. 
+
+`Decoder` takes in noised actions and encoded information, then predicts a noise with the same shape of sample as output.
+
+Both transformer encoder and decoder are using torch.nn module, and the transformer forward computation is shown in the code box below.
+
+> Its structure is based on minGPT, which is decoder-only. Here it means that the input `sample` (noised actions) will only being processed by the transformer decoder, which means that it does not need to learning information from `sample` by encoder, conversely it just needs to do the noise prediction task by decoder. Details are below, encoder is to process `cond` and `timestep` only, and decoder is to process `sample` only.
+
+**Transformer Forward Details**
+
+```python
+# diffusion_policy/model/diffusion/transformer_for_diffusion.py
+class TransformerForDiffusion(ModuleAttrMixin):
+    # ......
+    def forward(self, 
+        sample: torch.Tensor, 
+        timestep: Union[torch.Tensor, float, int], 
+        cond: Optional[torch.Tensor]=None, **kwargs):
+        """
+        x: (B,T,input_dim)
+        timestep: (B,) or int, diffusion step
+        cond: (B,T',cond_dim)
+        output: (B,T,input_dim)
+        """
+        # 1. time
+        timesteps = timestep
+        if not torch.is_tensor(timesteps):
+            # TODO: this requires sync between CPU and GPU. So try to pass timesteps as tensors if you can
+            timesteps = torch.tensor([timesteps], dtype=torch.long, device=sample.device)
+        elif torch.is_tensor(timesteps) and len(timesteps.shape) == 0:
+            timesteps = timesteps[None].to(sample.device)
+        # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
+        timesteps = timesteps.expand(sample.shape[0])
+        time_emb = self.time_emb(timesteps).unsqueeze(1)
+        # (B,1,n_emb)
+
+        # process input
+        input_emb = self.input_emb(sample)
+
+        if self.encoder_only:
+            # BERT
+            token_embeddings = torch.cat([time_emb, input_emb], dim=1)
+            t = token_embeddings.shape[1]
+            position_embeddings = self.pos_emb[
+                :, :t, :
+            ]  # each position maps to a (learnable) vector
+            x = self.drop(token_embeddings + position_embeddings)
+            # (B,T+1,n_emb)
+            x = self.encoder(src=x, mask=self.mask)
+            # (B,T+1,n_emb)
+            x = x[:,1:,:]
+            # (B,T,n_emb)
+        else:
+            # encoder
+            cond_embeddings = time_emb
+            if self.obs_as_cond:
+                cond_obs_emb = self.cond_obs_emb(cond)
+                # (B,To,n_emb)
+                cond_embeddings = torch.cat([cond_embeddings, cond_obs_emb], dim=1)
+            tc = cond_embeddings.shape[1]
+            position_embeddings = self.cond_pos_emb[
+                :, :tc, :
+            ]  # each position maps to a (learnable) vector
+            x = self.drop(cond_embeddings + position_embeddings)
+            x = self.encoder(x)
+            memory = x
+            # (B,T_cond,n_emb)
+            
+            # decoder
+            token_embeddings = input_emb
+            t = token_embeddings.shape[1]
+            position_embeddings = self.pos_emb[
+                :, :t, :
+            ]  # each position maps to a (learnable) vector
+            x = self.drop(token_embeddings + position_embeddings)
+            # (B,T,n_emb)
+            x = self.decoder(
+                tgt=x,
+                memory=memory,
+                tgt_mask=self.mask,
+                memory_mask=self.memory_mask
+            )
+            # (B,T,n_emb)
+        
+        # head
+        x = self.ln_f(x)
+        x = self.head(x)
+        # (B,T,n_out)
+        return x
+```
 
 ### <span id="add noise">Add Noise</span>
 
@@ -436,72 +565,7 @@ def add_noise(original_samples, noise, timesteps):
     return noise_samples
 ```
 
-### Transformer 
-
-![Overall Structure](DP/image_1.png)
-
-Transformer based on diffusion policy is actually one noise predictor. Take in noised data with some conditions, it can predict the noise in the data, and then restore its original data. 
-
-The transformer can be seen in the blue dash box in the picture above. After data preprocessing, we have noised sample/actions, obs_features/cond, and timesteps generated randomly as inputs.
-
-Inputs:
-
-- `sample` is a sequence of noised actions.
-
-- `cond` denotes the observation feature. 
-
-- `timesteps` is the number of diffusion steps. 
-
-`Encoder` is designed to  encode observation features and timesteps. `n_cond_layers` is a hyperparameter that can be set in configuration files, and if it’s > 0, the transformer encoder will replace MLP encoder. 
-
-`Decoder` takes in noised actions and encoded information, then predicts a noise with the same shape of X/sample as output.
-
-Both transformer encoder and decoder are using torch.nn module, and the transformer forward computation is shown in the code box below.
-
-> Its structure is based on minGPT, which is decoder-only. Here it means that the input `sample` (noised actions) will only being processed by the transformer decoder, which means that it does not need to learning information from `sample` by encoder, conversely it just needs to do the noise prediction task by decoder. Details are below, encoder is to process `cond` and `timestep` only, and decoder is to process `sample` only.
-
-```python
-"""
-input arguments:
-	sample: A sequence of noised actions.
-	cond: Observation features.
-	timesteps: diffusion step.
-"""
-# 1. inputs embedding
-time_emb = self.time_emb(timesteps)
-input_emb = self.input_emb(sample)
-cond_obs_emb = self.cond_obs_emb(cond)
-
-# 2. prepare transformer encoder inputs, including concatenating and adding position embeddings.
-cond_embeddings = torch.cat([time_emb, cond_obs_emb], dim=1)
-tc = cond_embeddings.shape[1]
-position_embeddings = self.cond_pos_emb[
-    :, :tc, :
-]  # each position maps to a (learnable) vector
-x = self.drop(cond_embeddings + position_embeddings)
-
-# 3. process encoder inputs by encoder
-x = self.encoder(x)
-memory = x
-
-# 4. prepare decoder inputs - embedded sample + position embedding
-token_embeddings = input_emb
-t = token_embeddings.shape[1]
-position_embeddings = self.pos_emb[
-    :, :t, :
-]  # each position maps to a (learnable) vector
-x = self.drop(token_embeddings + position_embeddings)
-
-# 5. using preprocessed sample and condition information to predict noise by decoder
-x = self.decoder(
-    tgt=x,
-    memory=memory,
-    tgt_mask=self.mask,
-    memory_mask=self.memory_mask
-)
-```
-
-### Loss Function
+### Training
 
 The training loss is below, the goal is to train a policy $\epsilon_{\theta}$ to predict noise accurately:
 
@@ -512,14 +576,258 @@ where $\epsilon^k$ is a random noise with appropriate variance for iteration k. 
 After predicting noise by transformer, we got `pred_noise`. Then we use it to calculate training loss with the formula above. 
 
 ```python
-# 1. Predict the noise residual
-pred_noise = self.model(noisy_trajectory, timesteps, cond)
+# diffusion_policy/workspace/train_diffusion_transformer_hybrid_workspace.py
+class TrainDiffusionTransformerHybridWorkspace(BaseWorkspace):
+    include_keys = ['global_step', 'epoch']
 
-# 2. calculate training loss
-loss = F.mse_loss(pred, target, reduction='none')
-loss = loss * loss_mask.type(loss.dtype)
-loss = reduce(loss, 'b ... -> b (...)', 'mean')
-loss = loss.mean()y
+    def __init__(self, cfg: OmegaConf, output_dir=None):
+        super().__init__(cfg, output_dir=output_dir)
+
+        # set seed
+        seed = cfg.training.seed
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        random.seed(seed)
+
+        # configure model
+        self.model: DiffusionTransformerHybridImagePolicy = hydra.utils.instantiate(cfg.policy)
+
+        self.ema_model: DiffusionTransformerHybridImagePolicy = None
+        if cfg.training.use_ema:
+            self.ema_model = copy.deepcopy(self.model)
+
+        # configure training state
+        self.optimizer = self.model.get_optimizer(**cfg.optimizer)
+
+        # configure training state
+        self.global_step = 0
+        self.epoch = 0
+
+    def run(self):
+        cfg = copy.deepcopy(self.cfg)
+
+        # resume training
+        if cfg.training.resume:
+            lastest_ckpt_path = self.get_checkpoint_path()
+            if lastest_ckpt_path.is_file():
+                print(f"Resuming from checkpoint {lastest_ckpt_path}")
+                self.load_checkpoint(path=lastest_ckpt_path)
+
+        # configure dataset
+        dataset: BaseImageDataset
+        dataset = hydra.utils.instantiate(cfg.task.dataset)
+        assert isinstance(dataset, BaseImageDataset)
+        train_dataloader = DataLoader(dataset, **cfg.dataloader)
+        normalizer = dataset.get_normalizer()
+
+        # configure validation dataset
+        val_dataset = dataset.get_validation_dataset()
+        val_dataloader = DataLoader(val_dataset, **cfg.val_dataloader)
+
+        self.model.set_normalizer(normalizer)
+        if cfg.training.use_ema:
+            self.ema_model.set_normalizer(normalizer)
+
+        # configure lr scheduler
+        lr_scheduler = get_scheduler(
+            cfg.training.lr_scheduler,
+            optimizer=self.optimizer,
+            num_warmup_steps=cfg.training.lr_warmup_steps,
+            num_training_steps=(
+                len(train_dataloader) * cfg.training.num_epochs) \
+                    // cfg.training.gradient_accumulate_every,
+            # pytorch assumes stepping LRScheduler every epoch
+            # however huggingface diffusers steps it every batch
+            last_epoch=self.global_step-1
+        )
+
+        # configure ema
+        ema: EMAModel = None
+        if cfg.training.use_ema:
+            ema = hydra.utils.instantiate(
+                cfg.ema,
+                model=self.ema_model)
+
+        # configure env
+        env_runner: BaseImageRunner
+        env_runner = hydra.utils.instantiate(
+            cfg.task.env_runner,
+            output_dir=self.output_dir)
+        assert isinstance(env_runner, BaseImageRunner)
+
+        # configure logging
+        wandb_run = wandb.init(
+            dir=str(self.output_dir),
+            config=OmegaConf.to_container(cfg, resolve=True),
+            **cfg.logging
+        )
+        wandb.config.update(
+            {
+                "output_dir": self.output_dir,
+            }
+        )
+
+        # configure checkpoint
+        topk_manager = TopKCheckpointManager(
+            save_dir=os.path.join(self.output_dir, 'checkpoints'),
+            **cfg.checkpoint.topk
+        )
+
+        # device transfer
+        device = torch.device(cfg.training.device)
+        self.model.to(device)
+        if self.ema_model is not None:
+            self.ema_model.to(device)
+        optimizer_to(self.optimizer, device)
+        
+        # save batch for sampling
+        train_sampling_batch = None
+
+        if cfg.training.debug:
+            cfg.training.num_epochs = 2
+            cfg.training.max_train_steps = 3
+            cfg.training.max_val_steps = 3
+            cfg.training.rollout_every = 1
+            cfg.training.checkpoint_every = 1
+            cfg.training.val_every = 1
+            cfg.training.sample_every = 1
+
+        # training loop
+        log_path = os.path.join(self.output_dir, 'logs.json.txt')
+        with JsonLogger(log_path) as json_logger:
+            for local_epoch_idx in range(cfg.training.num_epochs):
+                step_log = dict()
+                # ========= train for this epoch ==========
+                train_losses = list()
+                with tqdm.tqdm(train_dataloader, desc=f"Training epoch {self.epoch}", 
+                        leave=False, mininterval=cfg.training.tqdm_interval_sec) as tepoch:
+                    for batch_idx, batch in enumerate(tepoch):
+                        # device transfer
+                        batch = dict_apply(batch, lambda x: x.to(device, non_blocking=True))
+                        if train_sampling_batch is None:
+                            train_sampling_batch = batch
+
+                        # compute loss
+                        raw_loss = self.model.compute_loss(batch)
+                        loss = raw_loss / cfg.training.gradient_accumulate_every
+                        loss.backward()
+
+                        # step optimizer
+                        if self.global_step % cfg.training.gradient_accumulate_every == 0:
+                            self.optimizer.step()
+                            self.optimizer.zero_grad()
+                            lr_scheduler.step()
+                        
+                        # update ema
+                        if cfg.training.use_ema:
+                            ema.step(self.model)
+
+                        # logging
+                        raw_loss_cpu = raw_loss.item()
+                        tepoch.set_postfix(loss=raw_loss_cpu, refresh=False)
+                        train_losses.append(raw_loss_cpu)
+                        step_log = {
+                            'train_loss': raw_loss_cpu,
+                            'global_step': self.global_step,
+                            'epoch': self.epoch,
+                            'lr': lr_scheduler.get_last_lr()[0]
+                        }
+
+                        is_last_batch = (batch_idx == (len(train_dataloader)-1))
+                        if not is_last_batch:
+                            # log of last step is combined with validation and rollout
+                            wandb_run.log(step_log, step=self.global_step)
+                            json_logger.log(step_log)
+                            self.global_step += 1
+
+                        if (cfg.training.max_train_steps is not None) \
+                            and batch_idx >= (cfg.training.max_train_steps-1):
+                            break
+
+                # at the end of each epoch
+                # replace train_loss with epoch average
+                train_loss = np.mean(train_losses)
+                step_log['train_loss'] = train_loss
+
+                # ========= eval for this epoch ==========
+                policy = self.model
+                if cfg.training.use_ema:
+                    policy = self.ema_model
+                policy.eval()
+
+                # run rollout
+                if (self.epoch % cfg.training.rollout_every) == 0:
+                    runner_log = env_runner.run(policy)
+                    # log all
+                    step_log.update(runner_log)
+
+                # run validation
+                if (self.epoch % cfg.training.val_every) == 0:
+                    with torch.no_grad():
+                        val_losses = list()
+                        with tqdm.tqdm(val_dataloader, desc=f"Validation epoch {self.epoch}", 
+                                leave=False, mininterval=cfg.training.tqdm_interval_sec) as tepoch:
+                            for batch_idx, batch in enumerate(tepoch):
+                                batch = dict_apply(batch, lambda x: x.to(device, non_blocking=True))
+                                loss = self.model.compute_loss(batch)
+                                val_losses.append(loss)
+                                if (cfg.training.max_val_steps is not None) \
+                                    and batch_idx >= (cfg.training.max_val_steps-1):
+                                    break
+                        if len(val_losses) > 0:
+                            val_loss = torch.mean(torch.tensor(val_losses)).item()
+                            # log epoch average validation loss
+                            step_log['val_loss'] = val_loss
+
+                # run diffusion sampling on a training batch
+                if (self.epoch % cfg.training.sample_every) == 0:
+                    with torch.no_grad():
+                        # sample trajectory from training set, and evaluate difference
+                        batch = dict_apply(train_sampling_batch, lambda x: x.to(device, non_blocking=True))
+                        obs_dict = batch['obs']
+                        gt_action = batch['action']
+                        
+                        result = policy.predict_action(obs_dict)
+                        pred_action = result['action_pred']
+                        mse = torch.nn.functional.mse_loss(pred_action, gt_action)
+                        step_log['train_action_mse_error'] = mse.item()
+                        del batch
+                        del obs_dict
+                        del gt_action
+                        del result
+                        del pred_action
+                        del mse
+                
+                # checkpoint
+                if (self.epoch % cfg.training.checkpoint_every) == 0:
+                    # checkpointing
+                    if cfg.checkpoint.save_last_ckpt:
+                        self.save_checkpoint()
+                    if cfg.checkpoint.save_last_snapshot:
+                        self.save_snapshot()
+
+                    # sanitize metric names
+                    metric_dict = dict()
+                    for key, value in step_log.items():
+                        new_key = key.replace('/', '_')
+                        metric_dict[new_key] = value
+                    
+                    # We can't copy the last checkpoint here
+                    # since save_checkpoint uses threads.
+                    # therefore at this point the file might have been empty!
+                    topk_ckpt_path = topk_manager.get_ckpt_path(metric_dict)
+
+                    if topk_ckpt_path is not None:
+                        self.save_checkpoint(path=topk_ckpt_path)
+                # ========= eval end for this epoch ==========
+                policy.train()
+
+                # end of epoch
+                # log of last step is combined with validation and rollout
+                wandb_run.log(step_log, step=self.global_step)
+                json_logger.log(step_log)
+                self.global_step += 1
+                self.epoch += 1
 ```
 
 
@@ -536,97 +844,342 @@ First, we introduce how `env_runner` works. We can simply decompose the simulati
 > Further, `env_runner` uses multiprocessing to achieve multiple environment to execute parallelly. And these simulation environments have 2 types - train and test. Here train type means the initial state is from original dataset, and test type means initial state is set randomly with a different seed.
 
 ```python
-while not done:
-    # run policy
-    with torch.no_grad():
-        action_dict = policy.predict_action(obs_dict)
+class RobomimicImageRunner(BaseImageRunner):
+    """
+    Robomimic envs already enforces number of steps.
+    """
 
-    # step env
-    env_action = action
-    if self.abs_action:
-        env_action = self.undo_transform_action(action)
+    def __init__(self, 
+            output_dir,
+            dataset_path,
+            shape_meta:dict,
+            n_train=10,
+            n_train_vis=3,
+            train_start_idx=0,
+            n_test=22,
+            n_test_vis=6,
+            test_start_seed=10000,
+            max_steps=400,
+            n_obs_steps=2,
+            n_action_steps=8,
+            render_obs_key='agentview_image',
+            fps=10,
+            crf=22,
+            past_action=False,
+            abs_action=False,
+            tqdm_interval_sec=5.0,
+            n_envs=None
+        ):
+        super().__init__(output_dir)
 
-    obs, reward, done, info = env.step(env_action)
-    done = np.all(done)
-    past_action = action
+        if n_envs is None:
+            n_envs = n_train + n_test
+
+        # assert n_obs_steps <= n_action_steps
+        dataset_path = os.path.expanduser(dataset_path)
+        robosuite_fps = 20
+        steps_per_render = max(robosuite_fps // fps, 1)
+
+        # read from dataset
+        env_meta = FileUtils.get_env_metadata_from_dataset(
+            dataset_path)
+        # disable object state observation
+        env_meta['env_kwargs']['use_object_obs'] = False
+
+        rotation_transformer = None
+        if abs_action:
+            env_meta['env_kwargs']['controller_configs']['control_delta'] = False
+            rotation_transformer = RotationTransformer('axis_angle', 'rotation_6d')
+
+        def env_fn():
+            robomimic_env = create_env(
+                env_meta=env_meta, 
+                shape_meta=shape_meta
+            )
+            # Robosuite's hard reset causes excessive memory consumption.
+            # Disabled to run more envs.
+            # https://github.com/ARISE-Initiative/robosuite/blob/92abf5595eddb3a845cd1093703e5a3ccd01e77e/robosuite/environments/base.py#L247-L248
+            robomimic_env.env.hard_reset = False
+            return MultiStepWrapper(
+                VideoRecordingWrapper(
+                    RobomimicImageWrapper(
+                        env=robomimic_env,
+                        shape_meta=shape_meta,
+                        init_state=None,
+                        render_obs_key=render_obs_key
+                    ),
+                    video_recoder=VideoRecorder.create_h264(
+                        fps=fps,
+                        codec='h264',
+                        input_pix_fmt='rgb24',
+                        crf=crf,
+                        thread_type='FRAME',
+                        thread_count=1
+                    ),
+                    file_path=None,
+                    steps_per_render=steps_per_render
+                ),
+                n_obs_steps=n_obs_steps,
+                n_action_steps=n_action_steps,
+                max_episode_steps=max_steps
+            )
+        
+        # For each process the OpenGL context can only be initialized once
+        # Since AsyncVectorEnv uses fork to create worker process,
+        # a separate env_fn that does not create OpenGL context (enable_render=False)
+        # is needed to initialize spaces.
+        def dummy_env_fn():
+            robomimic_env = create_env(
+                    env_meta=env_meta, 
+                    shape_meta=shape_meta,
+                    enable_render=False
+                )
+            return MultiStepWrapper(
+                VideoRecordingWrapper(
+                    RobomimicImageWrapper(
+                        env=robomimic_env,
+                        shape_meta=shape_meta,
+                        init_state=None,
+                        render_obs_key=render_obs_key
+                    ),
+                    video_recoder=VideoRecorder.create_h264(
+                        fps=fps,
+                        codec='h264',
+                        input_pix_fmt='rgb24',
+                        crf=crf,
+                        thread_type='FRAME',
+                        thread_count=1
+                    ),
+                    file_path=None,
+                    steps_per_render=steps_per_render
+                ),
+                n_obs_steps=n_obs_steps,
+                n_action_steps=n_action_steps,
+                max_episode_steps=max_steps
+            )
+
+        env_fns = [env_fn] * n_envs
+        env_seeds = list()
+        env_prefixs = list()
+        env_init_fn_dills = list()
+
+        # train
+        with h5py.File(dataset_path, 'r') as f:
+            for i in range(n_train):
+                train_idx = train_start_idx + i
+                enable_render = i < n_train_vis
+                init_state = f[f'data/demo_{train_idx}/states'][0]
+
+                def init_fn(env, init_state=init_state, 
+                    enable_render=enable_render):
+                    # setup rendering
+                    # video_wrapper
+                    assert isinstance(env.env, VideoRecordingWrapper)
+                    env.env.video_recoder.stop()
+                    env.env.file_path = None
+                    if enable_render:
+                        filename = pathlib.Path(output_dir).joinpath(
+                            'media', wv.util.generate_id() + ".mp4")
+                        filename.parent.mkdir(parents=False, exist_ok=True)
+                        filename = str(filename)
+                        env.env.file_path = filename
+
+                    # switch to init_state reset
+                    assert isinstance(env.env.env, RobomimicImageWrapper)
+                    env.env.env.init_state = init_state
+
+                env_seeds.append(train_idx)
+                env_prefixs.append('train/')
+                env_init_fn_dills.append(dill.dumps(init_fn))
+        
+        # test
+        for i in range(n_test):
+            seed = test_start_seed + i
+            enable_render = i < n_test_vis
+
+            def init_fn(env, seed=seed, 
+                enable_render=enable_render):
+                # setup rendering
+                # video_wrapper
+                assert isinstance(env.env, VideoRecordingWrapper)
+                env.env.video_recoder.stop()
+                env.env.file_path = None
+                if enable_render:
+                    filename = pathlib.Path(output_dir).joinpath(
+                        'media', wv.util.generate_id() + ".mp4")
+                    filename.parent.mkdir(parents=False, exist_ok=True)
+                    filename = str(filename)
+                    env.env.file_path = filename
+
+                # switch to seed reset
+                assert isinstance(env.env.env, RobomimicImageWrapper)
+                env.env.env.init_state = None
+                env.seed(seed)
+
+            env_seeds.append(seed)
+            env_prefixs.append('test/')
+            env_init_fn_dills.append(dill.dumps(init_fn))
+
+        env = AsyncVectorEnv(env_fns, dummy_env_fn=dummy_env_fn)
+        # env = SyncVectorEnv(env_fns)
+
+
+        self.env_meta = env_meta
+        self.env = env
+        self.env_fns = env_fns
+        self.env_seeds = env_seeds
+        self.env_prefixs = env_prefixs
+        self.env_init_fn_dills = env_init_fn_dills
+        self.fps = fps
+        self.crf = crf
+        self.n_obs_steps = n_obs_steps
+        self.n_action_steps = n_action_steps
+        self.past_action = past_action
+        self.max_steps = max_steps
+        self.rotation_transformer = rotation_transformer
+        self.abs_action = abs_action
+        self.tqdm_interval_sec = tqdm_interval_sec
+
+    def run(self, policy: BaseImagePolicy):
+        device = policy.device
+        dtype = policy.dtype
+        env = self.env
+        
+        # plan for rollout
+        n_envs = len(self.env_fns)
+        n_inits = len(self.env_init_fn_dills)
+        n_chunks = math.ceil(n_inits / n_envs)
+
+        # allocate data
+        all_video_paths = [None] * n_inits
+        all_rewards = [None] * n_inits
+
+        for chunk_idx in range(n_chunks):
+            start = chunk_idx * n_envs
+            end = min(n_inits, start + n_envs)
+            this_global_slice = slice(start, end)
+            this_n_active_envs = end - start
+            this_local_slice = slice(0,this_n_active_envs)
+            
+            this_init_fns = self.env_init_fn_dills[this_global_slice]
+            n_diff = n_envs - len(this_init_fns)
+            if n_diff > 0:
+                this_init_fns.extend([self.env_init_fn_dills[0]]*n_diff)
+            assert len(this_init_fns) == n_envs
+
+            # init envs
+            env.call_each('run_dill_function', 
+                args_list=[(x,) for x in this_init_fns])
+
+            # start rollout
+            obs = env.reset()
+            past_action = None
+            policy.reset()
+
+            env_name = self.env_meta['env_name']
+            pbar = tqdm.tqdm(total=self.max_steps, desc=f"Eval {env_name}Image {chunk_idx+1}/{n_chunks}", 
+                leave=False, mininterval=self.tqdm_interval_sec)
+            
+            done = False
+            while not done:
+                # create obs dict
+                np_obs_dict = dict(obs)
+                if self.past_action and (past_action is not None):
+                    # TODO: not tested
+                    np_obs_dict['past_action'] = past_action[
+                        :,-(self.n_obs_steps-1):].astype(np.float32)
+                
+                # device transfer
+                obs_dict = dict_apply(np_obs_dict, 
+                    lambda x: torch.from_numpy(x).to(
+                        device=device))
+
+                # run policy
+                with torch.no_grad():
+                    action_dict = policy.predict_action(obs_dict)
+
+                # device_transfer
+                np_action_dict = dict_apply(action_dict,
+                    lambda x: x.detach().to('cpu').numpy())
+
+                action = np_action_dict['action']
+                if not np.all(np.isfinite(action)):
+                    print(action)
+                    raise RuntimeError("Nan or Inf action")
+                
+                # step env
+                env_action = action
+                if self.abs_action:
+                    env_action = self.undo_transform_action(action)
+
+                obs, reward, done, info = env.step(env_action)
+                done = np.all(done)
+                past_action = action
+
+                # update pbar
+                pbar.update(action.shape[1])
+            pbar.close()
+
+            # collect data for this round
+            all_video_paths[this_global_slice] = env.render()[this_local_slice]
+            all_rewards[this_global_slice] = env.call('get_attr', 'reward')[this_local_slice]
+        # clear out video buffer
+        _ = env.reset()
+        
+        # log
+        max_rewards = collections.defaultdict(list)
+        log_data = dict()
+        # results reported in the paper are generated using the commented out line below
+        # which will only report and average metrics from first n_envs initial condition and seeds
+        # fortunately this won't invalidate our conclusion since
+        # 1. This bug only affects the variance of metrics, not their mean
+        # 2. All baseline methods are evaluated using the same code
+        # to completely reproduce reported numbers, uncomment this line:
+        # for i in range(len(self.env_fns)):
+        # and comment out this line
+        for i in range(n_inits):
+            seed = self.env_seeds[i]
+            prefix = self.env_prefixs[i]
+            max_reward = np.max(all_rewards[i])
+            max_rewards[prefix].append(max_reward)
+            log_data[prefix+f'sim_max_reward_{seed}'] = max_reward
+
+            # visualize sim
+            video_path = all_video_paths[i]
+            if video_path is not None:
+                sim_video = wandb.Video(video_path)
+                log_data[prefix+f'sim_video_{seed}'] = sim_video
+        
+        # log aggregate metrics
+        for prefix, value in max_rewards.items():
+            name = prefix+'mean_score'
+            value = np.mean(value)
+            log_data[name] = value
+
+        return log_data
+
+    def undo_transform_action(self, action):
+        raw_shape = action.shape
+        if raw_shape[-1] == 20:
+            # dual arm
+            action = action.reshape(-1,2,10)
+
+        d_rot = action.shape[-1] - 4
+        pos = action[...,:3]
+        rot = action[...,3:3+d_rot]
+        gripper = action[...,[-1]]
+        rot = self.rotation_transformer.inverse(rot)
+        uaction = np.concatenate([
+            pos, rot, gripper
+        ], axis=-1)
+
+        if raw_shape[-1] == 20:
+            # dual arm
+            uaction = uaction.reshape(*raw_shape[:-1], 14)
+
+        return uaction
+    # ......
 ```
-
-Below is the details of how to implement predicting actions. 
-
-```python
-# 1. randomly generate a trajectory.
-trajectory = torch.randn(
-    size=condition_data.shape, 
-    dtype=condition_data.dtype,
-    device=condition_data.device,
-    generator=generator)
-
-# 2. set step values
-scheduler.set_timesteps(self.num_inference_steps)
-
-# 3. use scheduler.step to get original trajectory in a loop
-for t in scheduler.timesteps:
-    # predict noise
-    model_output = model(trajectory, t, cond)
-
-    # compute previous image: x_t -> x_t-1
-    trajectory = scheduler.step(
-        model_output, t, trajectory, 
-        generator=generator,
-        **kwargs
-    ).prev_sample    
-# finally we get trajectory_0
-```
-
-Here is the algorithm of `noise_scheduler.step`. (x_t -> x_t-1)
-
-```python
-# 1. compute alphas, betas
-# 2. compute predicted original sample from predicted noise also called
-# 3. Clip "predicted x_0"
-# 4. Compute coefficients for pred_original_sample x_0 and current sample x_t
-# 5. Compute predicted previous sample µ_t
-pred_prev_sample = pred_original_sample_coeff * pred_original_sample + current_sample_coeff * sample
-# 6. Add noise
-pred_prev_sample = pred_prev_sample + variance
-```
-
-## Issues on Different Ways of Passing Observations
-
-We know that observation features is a input of transformer, but actually it has 2 ways to pass observation features.
-
-**Regard Observations as Condition**
-
-This way means that, the observation features will be processed by transformer encoder first. Then pass it as conditions to decoder for noise prediction.
-
-```python
-cond = None
-trajectory = nactions
-
-# reshape B, T, ... to B*T
-this_nobs = dict_apply(nobs, lambda x: x[:,:To,...].reshape(-1,*x.shape[2:]))
-nobs_features = self.obs_encoder(this_nobs)
-# reshape back to B, To, Do
-cond = nobs_features.reshape(batch_size, To, -1)
-```
-
-Another way means that it would not pass the observation features to transformer encoder. Instead, it will regard the observation features as a part of sample. Here, we know that `cond` is set None, which proves that observation features are not passed to transformer encoder.
-
-```python
-cond = None
-trajectory = nactions
-
-# reshape B, T, ... to B*T
-this_nobs = dict_apply(nobs, lambda x: x.reshape(-1, *x.shape[2:]))
-nobs_features = self.obs_encoder(this_nobs)
-# reshape back to B, T, Do
-nobs_features = nobs_features.reshape(batch_size, horizon, -1)
-trajectory = torch.cat([nactions, nobs_features], dim=-1).detach()
-```
-
-> Here is my point. Looking back ACT model structure, we regard it as a conditional VAE because it not only uses latent code from ENCODER to generate, it also uses observations (camera images, joint positions/torques). We regard these observations as conditions, because they are all processed by transformer encoder, and then are passed to transformer decoder to impact its decoding process. So the second passing observation way here, may cannot regard observation as conditions. 
->
-> However, the point of the second way, I guess, is to make the model not just to predict noise of actions, but also predict noise of observations, i.e. restoring actions and observations at the same time. It’s like only such observations, we do such specific actions. To some extent, the actions are connected to observations. 
 
 ## Comments
 
