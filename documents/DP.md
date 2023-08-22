@@ -2,7 +2,7 @@
 
 ## Data
 
-:arrow_forward: **Original Data in HDF5 File**
+### Original Data in HDF5 File
 
 The official provides dataset in `hdf5` format. The `hdf5` file saves many stuffs of demonstrations, such as actions, dones(whether the episode is done), rewards, states(vectors describing the robot states), and obs. However, for training the policy, here just uses a part of this dataset.
 
@@ -42,7 +42,7 @@ Group: /data/demo_0
     Dataset: /data/demo_0/obs/robot0_joint_vel    shape: (127, 7)
 ```
 
-:arrow_forward: **observation** 
+### observation
 
 Here observation includes an agent view image, a robot image from its hand, end effector's positions and quaternion, and robot gripper positions. 
 
@@ -62,11 +62,11 @@ robot0_gripper_qpos:
   shape: [2]
 ```
 
-:arrow_forward: **action**
+### action
 
 The first three dimension of action is to describe end effector's position change, and the subsequent three dimension is to illustrate rotation change, and the last dimension is to record gripper's status.
 
-```
+```txt
 desired translation of EEF(3), desired delta rotation from current EEF(3), and opening and closing of the gripper fingers:
 	shape: [7]
 ```
