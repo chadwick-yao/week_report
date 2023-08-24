@@ -263,17 +263,17 @@ The overall structure can be simplified as a picture above, which includes 3 mod
 ```yaml
 obs:
 	agentview_image:
-		shape: [batch_size, horizon, 3, 84, 84]
+		shape: [batch_size, n_obs_steps, 3, 84, 84]
 		type: rgb
 	robot0_eye_in_hand_image:
-		shape: [batch_size, horizon, 3, 84, 84]
+		shape: [batch_size, n_obs_steps, 3, 84, 84]
 		type: rgb
 	robot0_eef_pos:
-		shape: [batch_size, horizon, 3]
+		shape: [batch_size, n_obs_steps, 3]
 	robot0_eef_quat:
-		shape: [batch_size, horizon, 4]
+		shape: [batch_size, n_obs_steps, 4]
 	robot0_gripper_qpos:
-		shape: [batch_size, horizon, 2]
+		shape: [batch_size, n_obs_steps, 2]
 ```
 
 **OUTPUT**
