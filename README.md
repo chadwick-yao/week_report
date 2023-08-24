@@ -159,3 +159,32 @@ test实际上是通过env_runner实现的
 - [ ] workspace
 - [ ] env_runner
 - [ ] dataset 需要进行修改
+
+```python
+# 需要的输入数据
+        """
+        In ACT, its __getitem__ gets    image_data [k, c h, w],
+                                        qpos_data [14],
+                                        action_data [episode_len, 14],
+                                        is_pad [episode_len]
+                                    do preprocessing at last
+        """
+# 目前的item
+"""
+batch -> obs
+		-> actions
+"""
+```
+
+再放入模型前，需要
+
+1. 合并image
+2. 只需要当前时刻的obs，并不是To
+3. 虽然说act的action有episode那么长但实际上最后放进模型的是num_queries=100；其他所有数据都是这一ts下的，action是[ts:ts+100]；
+
+假设我们合并后：obs [horizon, 2, 3, 84, 84], [horizon, 9] 
+
+​	action [horizon, 7]
+
+2种解决方式就是重写一下和ACT一摸一样，第二就是obs我取第一个
+
