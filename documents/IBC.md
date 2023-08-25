@@ -180,11 +180,7 @@ checkpoint:
 
 ## Network
 
-|obs| -------> |visual encoder| ---------->
-											Fully Connected Network -> energy value
-|action| ----> noised action ----> cat --->
-					|+|			 |+|
-		 	  	noise		  samples
+![image-20230825173811939](assets/image-20230825173811939.png)
 
 **INPUTS**
 
