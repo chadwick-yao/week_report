@@ -1,13 +1,33 @@
+Each epoch do one time of training loss calculation
 
+![](assets/ACT_vs_DP_train_loss.png)
 
-# Action Chunk Transformer
+Each epoch do one time of validation loss calculation
 
-Test (seed=100001, step=18940)
+![](assets/ACT_vs_DP_val_loss.png)
 
-<video width="560" height="315" controls>
-  <source src="https://storage.googleapis.com/wandb-production.appspot.com/1611440536/ACT_policy_debug/tob9qx20/media/videos/test/sim_video_100001_18940_21d59d30d466b3bc835f.mp4?Expires=1692866643&GoogleAccessId=gorilla-files-url-signer-man%40wandb-production.iam.gserviceaccount.com&Signature=vlwtOiGSEGFfu38Y3QC3S15PVPgY6dnpuYqt%2BRmb8r8C051WQP4W9NnShZqKWflejhaKBA3HsRyHtewBqrvI2LhuXoKDYMyt8MIJgS3G3tSjdudfK7Uh4Ft4Vyv%2FshzMxJj1uysABljp3sENQ1aRI7W%2BtaoxZl3Piglgzt1S0bKI57DyDqMwymu4H3l4K24hLJsUQB9tiHiSXWjFkEFFSJzCCFa2qVb6MgacxcTe3prAlGY8PVUaP3gcF349C%2FiRzqglA9EUgXtFnF6AnyKNcPY3Un6511tQQ0JgHZ9bmP7pp0CqcQ4piORaXdB0%2Fzjy1yzm0WMfn6fsxOg%2BKI8PvQ%3D%3D" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+Every 5 epochs do one time of train action pred MSE calculation
 
-# Diffusion Policy
+![](assets/ACT_vs_DP_action_MSE.png)
 
+|                         | ACT  | DP   |
+| ----------------------- | ---- | ---- |
+| Success Rate (10 times) | 90%  | 70%  |
+
+**VIDEO DEMONSTRATION**
+
+**DP SUCCESS**
+
+<img src="assets/DP_SIM_SUCCESS.gif" style="zoom:400%;" />
+
+**DP FAILURE**
+
+<img src="assets/DP_SIM_FAIL.gif" style="zoom:400%;" />
+
+**ACT SUCCESS**
+
+<img src="assets/ACT_SIM_SUCCESS.gif" style="zoom:400%;" />
+
+**ACT FAILURE**
+
+<img src="assets/ACT_SIM_FAIL.gif" style="zoom:400%;" />
