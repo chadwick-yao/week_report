@@ -46,7 +46,7 @@ Group: /data/demo_0
 
 Here observation includes an agent view image, a robot image from its hand, end effector's positions and quaternion, and robot gripper positions. 
 
-```tex
+```yaml
 agentview_image:
   shape: [3, 84, 84]
   type: rgb
