@@ -143,7 +143,7 @@ Every 5 epochs do one time of train action pred MSE calculation
 **DP FAILURE**
 
 <div align="center">
-    <img src="assets/DP_SIM_FAIL.gif" style="zoom:400%;" />
+    <img src="assets/DP_SIM_FAIL.gif" width=50%/>
 </div>
 
 
@@ -151,7 +151,7 @@ Every 5 epochs do one time of train action pred MSE calculation
 **ACT SUCCESS**
 
 <div align="center">
-    <img src="assets/ACT_SIM_SUCCESS.gif" style="zoom:400%;" />
+    <img src="assets/ACT_SIM_SUCCESS.gif" width=50% />
 </div>
 
 
@@ -159,7 +159,7 @@ Every 5 epochs do one time of train action pred MSE calculation
 **ACT FAILURE**
 
 <div align="center">
-    <img src="assets/ACT_SIM_FAIL.gif" style="zoom:400%;" />
+    <img src="assets/ACT_SIM_FAIL.gif" width=50% />
 </div>
 
 
@@ -167,6 +167,6 @@ Every 5 epochs do one time of train action pred MSE calculation
 **IBC FAILURE**
 
 <div align="center">
-    <img src="assets/IBC_SIM_FAIL.gif" style="zoom:400%;" />
+    <img src="assets/IBC_SIM_FAIL.gif" width=50% />
 </div>
 
