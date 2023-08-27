@@ -2,25 +2,28 @@
 
 ### ACT
 
-| Hyperparams           | Value |
-| --------------------- | ----- |
-| learning rate         | 1e-5  |
-| batch size            | 64    |
-| encoder layer         | 6     |
-| decoder layer         | 6     |
-| feedforward dimension | 2048  |
-| hidden dimension      | 512   |
-| heads                 | 8     |
-| dropout               | 0.1   |
-| chunk size            | 10    |
+| Hyperparams           | Definition | Value |
+| --------------------- | ---------- | ----- |
+| learning rate         |            | 1e-5  |
+| batch size            |            | 64    |
+| encoder layer         |            | 6     |
+| decoder layer         |            | 6     |
+| feedforward dimension |            | 2048  |
+| hidden dimension      |            | 512   |
+| heads                 |            | 8     |
+| dropout               |            | 0.1   |
+| chunk size            |            | 10    |
 
 ### IBC
 
-| Hyperparams   | Value                          |
-| ------------- | ------------------------------ |
-| learning rate | 1e-4                           |
-| batch size    | 64                             |
-| pred_n_iter   | the number of updating samples |
+| Hyperparams    | Definition                                               | Value |
+| -------------- | -------------------------------------------------------- | ----- |
+| learning rate  |                                                          | 1e-4  |
+| batch size     |                                                          | 64    |
+| pred_n_iter    | the number of updating samples                           | 5     |
+| n_obs_steps    | the step number of obs that the model prediction depends | 2     |
+| n_action_steps | the step number of executing action                      | 8     |
+| horizon        | the step number of predicted action                      | 10    |
 
 ### DP
 
@@ -135,7 +138,7 @@ Every 5 epochs do one time of train action pred MSE calculation
 **DP SUCCESS**
 
 <div align="center">
-    <img src="assets/DP_SIM_SUCCESS.gif" style="zoom:400%;" />
+    <img src="assets/DP_SIM_SUCCESS.gif" width=50% />
 </div>
 
 
@@ -143,7 +146,7 @@ Every 5 epochs do one time of train action pred MSE calculation
 **DP FAILURE**
 
 <div align="center">
-    <img src="assets/DP_SIM_FAIL.gif" width=50%/>
+    <img src="assets/DP_SIM_FAIL.gif" width=50% />
 </div>
 
 
