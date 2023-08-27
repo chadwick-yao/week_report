@@ -135,7 +135,7 @@ Every 5 epochs do one time of train action pred MSE calculation
 **DP SUCCESS**
 
 <div align="center">
-    <img src="assets/DP_SIM_SUCCESS.gif" style="zoom:400%;" />
+    <img src="assets/DP_SIM_SUCCESS.gif" width=50% />
 </div>
 
 
