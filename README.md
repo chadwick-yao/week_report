@@ -149,12 +149,18 @@ Implement ACT in `DP` code frame.
 
 ## 2023/08/24~2023/08/30
 
-Comparative Experiments. 
+### Summary
 
-- [x] rewrite `experiments.md`, e.g. training, formulations, environment settings, and etc.
-- [x] Use IBC to execute push-t task.
-- [x] epoch-success rate png.
+This week, I put my focus on some comparative experiments, i.e. tasks like CAN, SQUARE and PUSH-T. Based on the tasks, I trained 3 policies, includes ACT, DP and  IBC. They are all relied on MUJOCO simulation environment. These experiments results can be found <a href="https://github.com/Dominique-Yiu/week_report/blob/master/documents/experiments.md">EXPERIMENTS.MD</a>, and because some tasks are still executing, I will replenish these missing pieces within next few days.
 
-> ## WARNING
->
-> 
+### Challenges
+
+:pushpin: IBC policy has a extreme bad performance when doing the SQUARE task.
+	:dart: In the DP paper, it described that IBC exactly had a bad performance under SQUARE task scenario. Then, I tried Push-T scenario and got the close success rate as the paper says.
+
+:pushpin: Confusion about how package ROBOMIMIC initializes the environment, such as the initial pose of robot, square nut pose and position, even the table settings.
+	:dart: <a href="https://github.com/Dominique-Yiu/week_report/blob/master/documents/experiments.md">Details</a>
+
+### Next week targets
+
+:round_pushpin: 
