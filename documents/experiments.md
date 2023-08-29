@@ -137,36 +137,19 @@ $MSE = \frac{1}{n} \sum_{i=1}^{n} (a_i - \hat{a}_i)^2$ Here, $a_i$ represents i-
 
 **VIDEO DEMONSTRATION**
 
-**DP SUCCESS**
+**DP SUCCESS & FAILURE**
 
 <div align="center">
-    <img src="assets/DP_SIM_SUCCESS.gif" width=50% />
+    <img src="assets/DP_SIM_SUCCESS.gif" width=49% />
+    <img src="assets/DP_SIM_FAIL.gif" width=49% />
 </div>
 
-
-
-**DP FAILURE**
+**ACT SUCCESS & FAILURE**
 
 <div align="center">
-    <img src="assets/DP_SIM_FAIL.gif" width=50% />
+    <img src="assets/ACT_SIM_SUCCESS.gif" width=49% />
+    <img src="assets/ACT_SIM_FAIL.gif" width=49% />
 </div>
-
-
-
-**ACT SUCCESS**
-
-<div align="center">
-    <img src="assets/ACT_SIM_SUCCESS.gif" width=50% />
-</div>
-
-
-
-**ACT FAILURE**
-
-<div align="center">
-    <img src="assets/ACT_SIM_FAIL.gif" width=50% />
-</div>
-
 
 
 **IBC FAILURE**
@@ -179,8 +162,6 @@ $MSE = \frac{1}{n} \sum_{i=1}^{n} (a_i - \hat{a}_i)^2$ Here, $a_i$ represents i-
 
 
 ### :rocket: Push T
-
-
 
 
 
