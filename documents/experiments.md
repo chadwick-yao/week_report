@@ -85,15 +85,6 @@
 
 # INFERENCE
 
-## ADDITIONAL PARAMETERS
-
-### 
-
-|      |      |      |      |
-| ---- | ---- | ---- | ---- |
-|      |      |      |      |
-|      |      |      |      |
-
 ## TESTING DETAILS
 
 > The type of controlling method is OSC-pose control.
