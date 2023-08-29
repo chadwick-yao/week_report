@@ -165,4 +165,4 @@ This week, I put my focus on some comparative experiments, i.e. tasks like CAN, 
 
 ### Next week targets
 
-:round_pushpin: 
+:round_pushpin: More exp
