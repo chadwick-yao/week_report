@@ -151,52 +151,7 @@ Implement ACT in `DP` code frame.
 
 Comparative Experiments. 
 
-- [ ] rewrite `experiments.md`, e.g. training, formulations, environment settings, and etc.
+- [x] rewrite `experiments.md`, e.g. training, formulations, environment settings, and etc.
 - [x] Use IBC to execute push-t task.
 - [ ] epoch-success rate png.
-
-reward is defined in `/home/shawn/mambaforge/envs/robodiff/lib/python3.9/site-packages/robosuite/environments/manipulation/nut_assembly.py`
-
-Resets this observable's internal values (but does not reset its sensor, corrupter, delayer, or filter)
-
-```
-observables:
-
-robot0_joint_pos (7,)
-robot0_joint_pos_cos (7,)
-robot0_joint_pos_sin (7,)
-robot0_joint_vel (7,)
-robot0_eef_pos (3,)
-robot0_eef_quat (4,)
-robot0_eef_vel_lin (3,)
-robot0_eef_vel_ang (3,)
-robot0_gripper_qpos (2,)
-robot0_gripper_qvel (2,)
-agentview_image (84, 84, 3)
-robot0_eye_in_hand_image (84, 84, 3)
-world_pose_in_gripper (4, 4)
-SquareNut_pos (3,)
-SquareNut_quat (4,)
-SquareNut_to_robot0_eef_pos (3,)
-SquareNut_to_robot0_eef_quat (4,)
-RoundNut_pos (3,)
-RoundNut_quat (4,)
-RoundNut_to_robot0_eef_pos (3,)
-RoundNut_to_robot0_eef_quat (4,)
-```
-
-
-
-```
-robot0_joint_pos (7,)
-robot0_joint_pos_cos (7,)
-robot0_joint_pos_sin (7,)
-robot0_joint_vel (7,)
-robot0_eef_pos (3,)
-robot0_eef_quat (4,)
-robot0_eef_vel_lin (3,)
-robot0_eef_vel_ang (3,)
-robot0_gripper_qpos (2,)
-robot0_gripper_qvel (2,)
-```
 
