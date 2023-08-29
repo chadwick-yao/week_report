@@ -98,9 +98,9 @@ The work I focused on this week is to continue to explore the paper from Stanfor
 
 ​	`pbt`它是pbt算法（Population-Based Training）
 
-​	`	tasks`任务定义，定义observation维度，action维度。它继承vec_task他的任务就是创建仿真环境，其中step很重要，它是在执行action后更新环境的函数，返回obs, rewards, resets(是否完成)，info（超时信息）
+​	`tasks`任务定义，定义observation维度，action维度。它继承vec_task他的任务就是创建仿真环境，其中step很重要，它是在执行action后更新环境的函数，返回obs, rewards, resets(是否完成)，info（超时信息）
 
-​	`	train.py`利用runner进行train or test， 这里只关注players，这里面实现了get_action，使用model得到包括action等信息，players继承player，run函数是核心，在这里是信息agent和env互动的函数，在这里导出整个操作的数据。
+​	`train.py`利用runner进行train or test， 这里只关注players，这里面实现了get_action，使用model得到包括action等信息，players继承player，run函数是核心，在这里是信息agent和env互动的函数，在这里导出整个操作的数据。
 
 ​	buffer这些在执行过程中的一些内容信息，会在task中或者说vec_task的继承中更新。
 
@@ -156,9 +156,11 @@ This week, I put my focus on some comparative experiments, i.e. tasks like CAN, 
 ### Challenges
 
 :pushpin: IBC policy has a extreme bad performance when doing the SQUARE task.
+
 	:dart: In the DP paper, it described that IBC exactly had a bad performance under SQUARE task scenario. Then, I tried Push-T scenario and got the close success rate as the paper says.
 
 :pushpin: Confusion about how package ROBOMIMIC initializes the environment, such as the initial pose of robot, square nut pose and position, even the table settings.
+
 	:dart: <a href="https://github.com/Dominique-Yiu/week_report/blob/master/documents/experiments.md">Details</a>
 
 ### Next week targets
