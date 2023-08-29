@@ -66,7 +66,7 @@
 - ACT training loss: $q_{\phi}(z|a_{t:t+k},O_t)$ denotes encoder, $\pi_{\theta}(\widehat{a}_{t:t+k}|O_t,z)$ denotes decoder, weight $\beta$ 
   - $Loss=MSE(\pi_{\theta}(O_t, z),a_{t:t+k})+\beta D_{KL}(q_{\phi}(z|a_{t:t+k},O_t) || N(0,1))$
 - IBC training loss: $E_{\theta}(O_t, A_t)$ denotes energy predictor
-  - $Loss=\sum^N_{i=1}-\log(p_{\theta}(A_i\|O_i,\{\widehat{A}_i^j\}^{N_{neg}}_{j=1}))$
+  - $Loss=\sum^N_{i=1}-\log(p_{\theta}(A_iO_i,\{\widehat{A}_i^j\}^{N_{neg}}_{j=1}))$
   - $p_{\theta}(A_i|O_i,\{\widehat{A}_i^j\}^{N_{neg}}_{j=1})=\frac{\exp{-E_{\theta}(O_i,A_i)}}{\exp{-E_{\theta}(O_i,A_i)}+\sum^{N_{neg}}_{j=1}{\exp{-E_{\theta}(O_i,\widehat{A}_i^j)}}}$
 
 ### :rocket: Square
