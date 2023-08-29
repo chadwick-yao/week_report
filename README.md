@@ -142,49 +142,61 @@ The work I focused on this week is to continue to explore the paper from Stanfor
 ## 2023/08/10～2023/08/16
 
 Diffusion Policy
-为了简便，将tasks和methods独立进行设计；
 
-### Tasks
-Dataset数据集接口；EnvRunner执行Policy并产生结果；config/task/.yaml这里是配置文件，包含很多参数；Env是基于gym的task environment；
-### Policy
-实现inference部分以及训练部分过程；workspace实现training&evaluation；config/.yaml这个是policy的配置文件；
+## 2023/08/17～2023/08/23
 
-- [ ] <font color='red'>使用ACT跑起来square和can</font>
+Implement ACT in `DP` code frame. 
 
-test实际上是通过env_runner实现的
+## 2023/08/24~2023/08/30
 
-完成ACT的移植有以下几个步骤：
-- [x] model
-- [ ] policy
-- [ ] workspace
-- [ ] env_runner
-- [ ] dataset 需要进行修改
+Comparative Experiments. 
 
-```python
-# 需要的输入数据
-        """
-        In ACT, its __getitem__ gets    image_data [k, c h, w],
-                                        qpos_data [14],
-                                        action_data [episode_len, 14],
-                                        is_pad [episode_len]
-                                    do preprocessing at last
-        """
-# 目前的item
-"""
-batch -> obs
-		-> actions
-"""
+- [ ] rewrite `experiments.md`, e.g. training, formulations, environment settings, and etc.
+- [x] Use IBC to execute push-t task.
+- [ ] epoch-success rate png.
+
+reward is defined in `/home/shawn/mambaforge/envs/robodiff/lib/python3.9/site-packages/robosuite/environments/manipulation/nut_assembly.py`
+
+Resets this observable's internal values (but does not reset its sensor, corrupter, delayer, or filter)
+
+```
+observables:
+
+robot0_joint_pos (7,)
+robot0_joint_pos_cos (7,)
+robot0_joint_pos_sin (7,)
+robot0_joint_vel (7,)
+robot0_eef_pos (3,)
+robot0_eef_quat (4,)
+robot0_eef_vel_lin (3,)
+robot0_eef_vel_ang (3,)
+robot0_gripper_qpos (2,)
+robot0_gripper_qvel (2,)
+agentview_image (84, 84, 3)
+robot0_eye_in_hand_image (84, 84, 3)
+world_pose_in_gripper (4, 4)
+SquareNut_pos (3,)
+SquareNut_quat (4,)
+SquareNut_to_robot0_eef_pos (3,)
+SquareNut_to_robot0_eef_quat (4,)
+RoundNut_pos (3,)
+RoundNut_quat (4,)
+RoundNut_to_robot0_eef_pos (3,)
+RoundNut_to_robot0_eef_quat (4,)
 ```
 
-再放入模型前，需要
 
-1. 合并image
-2. 只需要当前时刻的obs，并不是To
-3. 虽然说act的action有episode那么长但实际上最后放进模型的是num_queries=100；其他所有数据都是这一ts下的，action是[ts:ts+100]；
 
-假设我们合并后：obs [horizon, 2, 3, 84, 84], [horizon, 9] 
-
-​	action [horizon, 7]
-
-2种解决方式就是重写一下和ACT一摸一样，第二就是obs我取第一个
+```
+robot0_joint_pos (7,)
+robot0_joint_pos_cos (7,)
+robot0_joint_pos_sin (7,)
+robot0_joint_vel (7,)
+robot0_eef_pos (3,)
+robot0_eef_quat (4,)
+robot0_eef_vel_lin (3,)
+robot0_eef_vel_ang (3,)
+robot0_gripper_qpos (2,)
+robot0_gripper_qvel (2,)
+```
 
