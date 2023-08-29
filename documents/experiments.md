@@ -87,12 +87,12 @@
 
 ## ADDITIONAL PARAMETERS
 
-### Implicit Behavioral Cloning
+### 
 
-|           | name           | definition | value |
-| --------- | -------------- | ---------- | ----- |
-| optimizer | pred_n_iter    |            | 100   |
-|           | pred_n_samples |            | 100   |
+|      |      |      |      |
+| ---- | ---- | ---- | ---- |
+|      |      |      |      |
+|      |      |      |      |
 
 ## TESTING DETAILS
 
@@ -125,6 +125,13 @@ Every 5 epochs do one time of train action pred MSE calculation.
 $MSE = \frac{1}{n} \sum_{i=1}^{n} (a_i - \hat{a}_i)^2$ Here, $a_i$ represents i-dim of original action, $\hat{a}_i$ denotes i-dim of predicted action.
 
 ### :rocket: Square
+
+**Additional parameters in IBC when doing testing**
+
+|           | name           | definition | value |
+| --------- | -------------- | ---------- | ----- |
+| optimizer | pred_n_iter    |            | 100   |
+|           | pred_n_samples |            | 100   |
 
 <div align="center">
     <img src="assets/ACT_vs_DP_action_MSE.png" />

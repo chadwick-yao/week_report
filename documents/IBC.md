@@ -296,6 +296,14 @@ def forward(self, obs, action):
 
 ## Training
 
+The training process is shown in the network architecture image. In details, the negative samples are related to its original action sequence min and max value.
+
+$Loss=\sum^B_{j=1}\sum^N_{i=1}{-\log(p_{\theta}(A_i|O_i,\{\widehat{A}_i^j\}^{N_{neg}}_{j=1}))}$ 
+
+$p_{\theta}(A_i|O_i,\{\widehat{A}_i^j\}^{N_{neg}}_{j=1})=\frac{\exp{-E_{\theta}(O_i,A_i)}}{\exp{-E_{\theta}(O_i,A_i)}+\sum^{N_{neg}}_{j=1}{\exp{-E_{\theta}(O_i,\widehat{A}_i^j)}}}$
+
+$E_{\theta}(O_t, A_t)$ denotes energy predictor; $N$ is the number of the overall samples. $B$ is batch size.
+
 ```python
 def compute_loss(self, batch):
     # normalize input
