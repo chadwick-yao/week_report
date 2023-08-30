@@ -20,7 +20,6 @@
 <div align="center">
     <figure id="network structure">
         <img align="center" src="DP/network_structure.png" alt="Network Structure" />
-        <figcaption>Network Structure</figcaption>
     </figure>
 </div>
 
