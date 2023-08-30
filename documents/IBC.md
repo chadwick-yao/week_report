@@ -329,7 +329,7 @@ The fundamental idea behind this loss function is to maximize the mutual informa
 
 $E_{\theta}(O_t, A_t)$ denotes energy predictor; $N$ is the number of the overall samples. $B$ is batch size. So the training process is make the model to remember the best action given current observations. Therefore, when inferencing, we can select the best action from generated samples which are produced with the original action distribution.
 
-$\{A_i^j\}^{N_{neg}}_{j=1}$
+$[A_i^j]^{N_{neg}}_{j=1}$
 
 1: Given: Demo dataset $D$
 
