@@ -2,54 +2,14 @@
 
 ## Data
 
-### Original Data in HDF5 File
-
-The official provides dataset in `hdf5` format. The `hdf5` file saves many stuffs of demonstrations, such as actions, dones(whether the episode is done), rewards, states(vectors describing the robot states), and obs. However, for training the policy, here just uses a part of this dataset.
-
-```yaml
-Group: /data/demo_0
-  Dataset: /data/demo_0/actions    shape: (127, 7)
-  Dataset: /data/demo_0/dones    shape: (127,)
-  Dataset: /data/demo_0/rewards    shape: (127,)
-  Dataset: /data/demo_0/states    shape: (127, 45)
-  Group: /data/demo_0/next_obs
-    Dataset: /data/demo_0/next_obs/agentview_image    shape: (127, 84, 84, 3)
-    Dataset: /data/demo_0/next_obs/object    shape: (127, 14)
-    Dataset: /data/demo_0/next_obs/robot0_eef_pos    shape: (127, 3)
-    Dataset: /data/demo_0/next_obs/robot0_eef_quat    shape: (127, 4)
-    Dataset: /data/demo_0/next_obs/robot0_eef_vel_ang    shape: (127, 3)
-    Dataset: /data/demo_0/next_obs/robot0_eef_vel_lin    shape: (127, 3)
-    Dataset: /data/demo_0/next_obs/robot0_eye_in_hand_image    shape: (127, 84, 84, 3)
-    Dataset: /data/demo_0/next_obs/robot0_gripper_qpos    shape: (127, 2)
-    Dataset: /data/demo_0/next_obs/robot0_gripper_qvel    shape: (127, 2)
-    Dataset: /data/demo_0/next_obs/robot0_joint_pos    shape: (127, 7)
-    Dataset: /data/demo_0/next_obs/robot0_joint_pos_cos    shape: (127, 7)
-    Dataset: /data/demo_0/next_obs/robot0_joint_pos_sin    shape: (127, 7)
-    Dataset: /data/demo_0/next_obs/robot0_joint_vel    shape: (127, 7)
-  Group: /data/demo_0/obs
-    Dataset: /data/demo_0/obs/agentview_image    shape: (127, 84, 84, 3)
-    Dataset: /data/demo_0/obs/object    shape: (127, 14)
-    Dataset: /data/demo_0/obs/robot0_eef_pos    shape: (127, 3)
-    Dataset: /data/demo_0/obs/robot0_eef_quat    shape: (127, 4)
-    Dataset: /data/demo_0/obs/robot0_eef_vel_ang    shape: (127, 3)
-    Dataset: /data/demo_0/obs/robot0_eef_vel_lin    shape: (127, 3)
-    Dataset: /data/demo_0/obs/robot0_eye_in_hand_image    shape: (127, 84, 84, 3)
-    Dataset: /data/demo_0/obs/robot0_gripper_qpos    shape: (127, 2)
-    Dataset: /data/demo_0/obs/robot0_gripper_qvel    shape: (127, 2)
-    Dataset: /data/demo_0/obs/robot0_joint_pos    shape: (127, 7)
-    Dataset: /data/demo_0/obs/robot0_joint_pos_cos    shape: (127, 7)
-    Dataset: /data/demo_0/obs/robot0_joint_pos_sin    shape: (127, 7)
-    Dataset: /data/demo_0/obs/robot0_joint_vel    shape: (127, 7)
-```
-
-### <span id="obs shape">Observation</span>
+### Observation
 
 - Image of the top-down camera (84, 84, 3)
 - Image of the wrist camera (84, 84, 3)
 - End effector's position and orientation (3, 4)
 - Gripper's position (2)
 
-### action
+### Action
 
 - Desired translation of EEF (3)
 - Desired rotation change from current EEF (3)
