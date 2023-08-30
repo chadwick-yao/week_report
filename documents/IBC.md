@@ -317,7 +317,7 @@ In this work, it proposes to reformulate BC using implicit models - specifically
 
 The training consists of generating a set of negative counter-examples $\{\widehat{A}_i^j\}^{N_{neg}}_{j=1}$ for each sample $A_i$ in a batch, and employing an InfoNCE-style loss function.
 $$
-Loss=\sum^B_{k=1}{\sum^N_{i=1}{-\log{(p_{\theta}{(A_i|O_i,\{\hat{A}_i^j\}^{N_{neg}}_{j=1})})}}}
+Loss=\sum^B_{k=1}{\sum^N_{i=1}{-\log{(p_{\theta}{(A_i|O_i,\{{A}_i^j\}^{N_{neg}}_{j=1})})}}}
 $$
 
 $$
