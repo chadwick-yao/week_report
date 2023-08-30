@@ -27,27 +27,13 @@ The network structure mainly includes 3 modules: <a href="#pre-process">Pre-Proc
 
 **Input**
 
-- timesteps
-  - definition: diffusion step
-  - shape: [1]
-  - type: tensor
-- actions
-  - definition: original action sequence
-  - shape: [batch_size, horizon, 7]
-  - type: tensor
-- obs
-  - definition: observations
-  - shape: see below
-  - type: dict
+- timesteps: diffusion step (1)
+- actions: action sequence (batch_size, horizon, 7)
+- obs: observations
 
 **Output**
 
-- pred_noise
-  - definition: Expected noise at timestep `timesteps` given `obs`
-  - shape: [batch_size, horizon, 7]
-  - type: tensor
- 
-
+- pred_noise: Expected noise at timestep `timesteps` given `obs` (batch_size, horizon, 7)
 
 ### <span id="pre-process">Pre-Process</span>
 
