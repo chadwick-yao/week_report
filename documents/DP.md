@@ -44,7 +44,10 @@ Group: /data/demo_0
 
 ### <span id="obs shape">Observation</span>
 
-Here observation includes an agent view image, a robot image from its hand, end effector's positions and quaternion, and robot gripper positions. 
+- Image of the top-down camera
+- Image of the wrist camera
+- End effector's position and orientation
+- Gripper's position
 
 ```yaml
 agentview_image:
