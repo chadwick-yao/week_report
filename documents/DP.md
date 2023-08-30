@@ -44,37 +44,16 @@ Group: /data/demo_0
 
 ### <span id="obs shape">Observation</span>
 
-- Image of the top-down camera
-- Image of the wrist camera
-- End effector's position and orientation
-- Gripper's position
-
-```yaml
-agentview_image:
-  shape: [3, 84, 84]
-  type: rgb
-robot0_eye_in_hand_image:
-  shape: [3, 84, 84]
-  type: rgb
-robot0_eef_pos:
-  shape: [3]
-  # type default: low_dim
-robot0_eef_quat:
-  shape: [4]
-robot0_gripper_qpos:
-  shape: [2]
-```
+- Image of the top-down camera (84, 84, 3)
+- Image of the wrist camera (84, 84, 3)
+- End effector's position and orientation (3, 4)
+- Gripper's position (2)
 
 ### action
 
-The first three dimension of action is to describe end effector's position change, and the subsequent three dimension is to illustrate rotation change, and the last dimension is to record gripper's status.
-
-```txt
-desired translation of EEF(3), desired delta rotation from current EEF(3), and opening and closing of the gripper fingers:
-	shape: [7]
-```
-
-
+- Desired translation of EEF (3)
+- Desired rotation change from current EEF (3)
+- opening or closing of the gripper fingers (1)
 
 ## HyperParameters
 
