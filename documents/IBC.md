@@ -235,6 +235,15 @@ obs:
   - shape: [batch_size, train_n_neg+1, horizon, 7]
   - type: tensor
 
+> 1. extract `obs` and `action` from one batch
+> 2. normalize `obs` and `action` to obtain `nobs` and `naction`
+> 3. get `this_action` (this_action = naction[:, To-1:To-1+horizon])
+> 4. add noise to `this_action`
+> 5. compute status of naction, includes min, max, mean and std
+> 6. establish a distribution with min and max value of naction
+> 7. use this distribution to generate samples in (B, train_n_neg, Ta, Da) shape
+> 8. concatenate negative samples and this_action in dimension one, so finally we get action in (B, train_n_neg+1, Ta, Da) shape
+
 ```python
 # Small additive noise to true positives.
 this_action += torch.normal(mean=0, std=1e-4,
@@ -296,13 +305,45 @@ def forward(self, obs, action):
 
 ## Training
 
-The training process is shown in the network architecture image. In details, the negative samples are related to its original action sequence min and max value.
+In this work, it proposes to reformulate BC using implicit models - specifically, the composition of argmin with a continuous energy function $E_{\theta}$ to represent the policy $\pi_{\theta}$.
 
-$Loss=\sum^B_{j=1}\sum^N_{i=1}{-\log(p_{\theta}(A_i|O_i,\{\widehat{A}_i^j\}^{N_{neg}}_{j=1}))}$ 
+<div align="center">
+    <img src="IBC/image-20230830105531852.png" />
+</div>
 
-$p_{\theta}(A_i|O_i,\{\widehat{A}_i^j\}^{N_{neg}}_{j=1})=\frac{\exp{-E_{\theta}(O_i,A_i)}}{\exp{-E_{\theta}(O_i,A_i)}+\sum^{N_{neg}}_{j=1}{\exp{-E_{\theta}(O_i,\widehat{A}_i^j)}}}$
 
-$E_{\theta}(O_t, A_t)$ denotes energy predictor; $N$ is the number of the overall samples. $B$ is batch size.
+
+The training consists of generating a set of negative counter-examples $\{\widehat{A}_i^j\}^{N_{neg}}_{j=1}$ for each sample $A_i$ in a batch, and employing an InfoNCE-style loss function.
+
+$Loss=\sum^B_{j=1}\sum^N_{i=1}{-\log(p_{\theta}(A_i|O_i,\{\hat{A}_i^j\}^{N_{neg}}_{j=1}))} -(1)$ 
+
+$p_{\theta}(A_i|O_i,\{\hat{A}_i^j\}^{N_{neg}}_{j=1})=\frac{\exp{-E_{\theta}(O_i,A_i)}}{\exp{-E_{\theta}(O_i,A_i)}+\sum^{N_{neg}}_{j=1}{\exp{-E_{\theta}(O_i,\hat{A}_i^j)}}}-(2)$
+
+The fundamental idea behind this loss function is to maximize the mutual information between positive sample pairs, which are drawn from the same instance but sampled under different transformations or perspectives. The objective of the loss is to guide the network in distinguishing between positive pairs and negative pairs sampled from other instances. Here, pairs refer to Observations and Actions and the energy here can be simply defined the correlation between current observation and current action.
+
+$E_{\theta}(O_t, A_t)$ denotes energy predictor; $N$ is the number of the overall samples. $B$ is batch size. So the training process is make the model to remember the best action given current observations. Therefore, when inferencing, we can select the best action from generated samples which are produced with the original action distribution.
+
+> 1: Given: Demo dataset $D$
+>
+> 2: Let $O_i$ and $A_i$ represent observation and action at timestep $i$, and $\{\hat{A}_i^j\}^{N_{neg}}_{j=1}$ denotes negative samples.
+>
+> 3: Initialize visual encoder $q_{\phi}(O_i)$.
+>
+> 4: Initialize FCN $E_{\theta}(q_{\phi}(O_i),[A_i,\{\hat{A}_i^j\}^{N_{neg}}_{j=1}])$.
+>
+> 5: for iteration n = 1,2, ..., do
+>
+> 6: 	sample $O_i$ and $A_i$ from $D$
+>
+> 7: 	generate $\{\hat{A}_i^j\}^{N_{neg}}_{j=1}$ based on $A_i$ and get $[A_i,\{\hat{A}_i^j\}^{N_{neg}}_{j=1}]$
+>
+> 8: 	energy = $E_{\theta}(q_{\phi}(O_i),[A_i,\{\hat{A}_i^j\}^{N_{neg}}_{j=1}])$
+>
+> 9: 	calculate probability (2)
+>
+> 10:	Loss = (1)
+>
+> 11:	Update $\theta, \phi$ with loss
 
 ```python
 def compute_loss(self, batch):
@@ -369,6 +410,20 @@ def compute_loss(self, batch):
 ## Inference
 
 We use the states of the action dataset we have, i.e. min and max value to establish one distribution, and then generate samples with shape [batch_size, pred_n_samples, Ta, Da]. Secondly, we use observations and samples to calculate energy of per [Ta, Da]. Finally, we choose the best for every batch and get actions [batch_size, Ta, Da]. 
+
+Andy’s implementation and Kevin’s implementation are a little similar, here I just simply introduce Kevin’s implementation.
+
+> 1. initialize noise scale
+> 2. LOOP
+>    - Given observation features and generated samples, we use our model to predict energy for every sample.
+>    - Transform the energy values into a probability distribution using softmax function.
+>    - Sample new action indices based on the probability distribution using a multinomial distribution.
+>    - Resample new action samples from the original action samples set using the new sample indices.
+>    - Add noise following a normal distribution and restrict the action samples within a reasonable range.
+> 3. Calculate energy values
+> 4. Transform into probability.
+> 5. select the index with the highest probability.
+> 6. Choose the corresponding optimal action from the action samples based on the index with highest probability.
 
 ```python
 def predict_action(self, obs_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
