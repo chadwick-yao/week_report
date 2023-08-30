@@ -155,6 +155,8 @@ $MSE = \frac{1}{n} \sum_{i=1}^{n} (a_i - \hat{a}_i)^2$ Here, $a_i$ represents i-
 <div align="center">
     <img src="assets/IBC_SIM_FAIL.gif" width=50% />
 </div>
+
+
 ### :rocket: Can
 
 
