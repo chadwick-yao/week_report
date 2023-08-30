@@ -330,7 +330,7 @@ $E_{\theta}(O_t, A_t)$ denotes energy predictor; $N$ is the number of the overal
 
 1: Given: Demo dataset $D$
 
-2: Let $O_i$ and $A_i$ represent observation and action at timestep $t$, and $[\hat{A}_i^j]^{N_{neg}}_{j=1}$ denotes negative samples.
+2: Let $O_i$ and $A_i$ represent observation and action at timestep $t$, and $[{A}_i^{'j}]^{N_{neg}}_{j=1}$ denotes negative samples.
 
 3: Initialize visual encoder $q_{\phi}(O_i)$.
 
