@@ -316,6 +316,7 @@ In this work, it proposes to reformulate BC using implicit models - specifically
 
 
 The training consists of generating a set of negative counter-examples $\{\widehat{A}_i^j\}^{N_{neg}}_{j=1}$ for each sample $A_i$ in a batch, and employing an InfoNCE-style loss function.
+
 $$
 Loss=\sum^B_{k=1}{\sum^N_{i=1}{-\log{(p_{\theta}{(A_i|O_i,\{{A}_i^j\}^{N_{neg}}_{j=1})})}}}
 $$
@@ -328,9 +329,11 @@ The fundamental idea behind this loss function is to maximize the mutual informa
 
 $E_{\theta}(O_t, A_t)$ denotes energy predictor; $N$ is the number of the overall samples. $B$ is batch size. So the training process is make the model to remember the best action given current observations. Therefore, when inferencing, we can select the best action from generated samples which are produced with the original action distribution.
 
+$\{\hat{A}_i^j\}^{N_{neg}}_{j=1}$
+
 1: Given: Demo dataset $D$
 
-2: Let $O_i$ and $A_i$ represent observation and action at timestep $t$, and $\{{A}_i^j\}^{N_{neg}}_{j=1}$ denotes negative samples.
+2: Let $O_i$ and $A_i$ represent observation and action at timestep $t$, and $\{\hat{A}_i^j\}^{N_{neg}}_{j=1}$ denotes negative samples.
 
 3: Initialize visual encoder $q_{\phi}(O_i)$.
 
