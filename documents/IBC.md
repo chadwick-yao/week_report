@@ -193,7 +193,7 @@ checkpoint:
   - shape: see below
   - type: dict
 
-```yaml
+```tex
 obs:
 	agentview_image:
 		shape: [batch_size, n_obs_steps, 3, 84, 84]
