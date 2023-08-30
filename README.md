@@ -98,9 +98,9 @@ The work I focused on this week is to continue to explore the paper from Stanfor
 
 ​	`pbt`它是pbt算法（Population-Based Training）
 
-​	`	tasks`任务定义，定义observation维度，action维度。它继承vec_task他的任务就是创建仿真环境，其中step很重要，它是在执行action后更新环境的函数，返回obs, rewards, resets(是否完成)，info（超时信息）
+​	`tasks`任务定义，定义observation维度，action维度。它继承vec_task他的任务就是创建仿真环境，其中step很重要，它是在执行action后更新环境的函数，返回obs, rewards, resets(是否完成)，info（超时信息）
 
-​	`	train.py`利用runner进行train or test， 这里只关注players，这里面实现了get_action，使用model得到包括action等信息，players继承player，run函数是核心，在这里是信息agent和env互动的函数，在这里导出整个操作的数据。
+​	`train.py`利用runner进行train or test， 这里只关注players，这里面实现了get_action，使用model得到包括action等信息，players继承player，run函数是核心，在这里是信息agent和env互动的函数，在这里导出整个操作的数据。
 
 ​	buffer这些在执行过程中的一些内容信息，会在task中或者说vec_task的继承中更新。
 
@@ -149,54 +149,20 @@ Implement ACT in `DP` code frame.
 
 ## 2023/08/24~2023/08/30
 
-Comparative Experiments. 
+### Summary
 
-- [ ] rewrite `experiments.md`, e.g. training, formulations, environment settings, and etc.
-- [x] Use IBC to execute push-t task.
-- [ ] epoch-success rate png.
+This week, I put my focus on some comparative experiments, i.e. tasks like CAN, SQUARE and PUSH-T. Based on the tasks, I trained 3 policies, includes ACT, DP and  IBC. They are all relied on MUJOCO simulation environment. These experiments results can be found <a href="https://github.com/Dominique-Yiu/week_report/blob/master/documents/experiments.md">EXPERIMENTS.MD</a>, and because some tasks are still executing, I will replenish these missing pieces within next few days.
 
-reward is defined in `/home/shawn/mambaforge/envs/robodiff/lib/python3.9/site-packages/robosuite/environments/manipulation/nut_assembly.py`
+### Challenges
 
-Resets this observable's internal values (but does not reset its sensor, corrupter, delayer, or filter)
+:pushpin: IBC policy has a extreme bad performance when doing the SQUARE task.
 
-```
-observables:
+​	:dart: In the DP paper, it described that IBC exactly had a bad performance under SQUARE task scenario. Then, I tried Push-T scenario and got the close success rate as the paper says.
 
-robot0_joint_pos (7,)
-robot0_joint_pos_cos (7,)
-robot0_joint_pos_sin (7,)
-robot0_joint_vel (7,)
-robot0_eef_pos (3,)
-robot0_eef_quat (4,)
-robot0_eef_vel_lin (3,)
-robot0_eef_vel_ang (3,)
-robot0_gripper_qpos (2,)
-robot0_gripper_qvel (2,)
-agentview_image (84, 84, 3)
-robot0_eye_in_hand_image (84, 84, 3)
-world_pose_in_gripper (4, 4)
-SquareNut_pos (3,)
-SquareNut_quat (4,)
-SquareNut_to_robot0_eef_pos (3,)
-SquareNut_to_robot0_eef_quat (4,)
-RoundNut_pos (3,)
-RoundNut_quat (4,)
-RoundNut_to_robot0_eef_pos (3,)
-RoundNut_to_robot0_eef_quat (4,)
-```
+:pushpin: Confusion about how package ROBOMIMIC initializes the environment, such as the initial pose of robot, square nut pose and position, even the table settings.
 
+​	:dart: <a href="https://github.com/Dominique-Yiu/week_report/blob/master/documents/experiments.md">Details</a>
 
+### Next week targets
 
-```
-robot0_joint_pos (7,)
-robot0_joint_pos_cos (7,)
-robot0_joint_pos_sin (7,)
-robot0_joint_vel (7,)
-robot0_eef_pos (3,)
-robot0_eef_quat (4,)
-robot0_eef_vel_lin (3,)
-robot0_eef_vel_ang (3,)
-robot0_gripper_qpos (2,)
-robot0_gripper_qvel (2,)
-```
-
+:round_pushpin: More exp

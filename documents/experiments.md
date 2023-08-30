@@ -128,11 +128,11 @@ $MSE = \frac{1}{n} \sum_{i=1}^{n} (a_i - \hat{a}_i)^2$ Here, $a_i$ represents i-
     <img src="assets/ACT_vs_DP_action_MSE.png" />
 </div>
 
-**SUCCESS RATE**
+**SUCCESS RATE** Every 10 epochs do one time
 
-|                         | ACT  | DP   | IBC  |
-| ----------------------- | ---- | ---- | ---- |
-| Success Rate (10 times) | 90%  | 70%  | 0%   |
+<div align="center">
+    <img src="assets/square_success_rate.png" />
+</div>
 
 **VIDEO DEMONSTRATION**
 
