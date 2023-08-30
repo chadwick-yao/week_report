@@ -319,7 +319,7 @@ The training consists of generating a set of negative counter-examples $[A_i^j]^
 
 $Loss=\sum^B_{k=1}{\sum^N_{i=1}{-\log{(p_{\theta}{(A_i|O_i,[A_i^{'j}]^{N_{neg}}_{j=1})})}}}-(1)$
 
-$p_{\theta}(A_i|O_i,[A_i^{'j}]^{N_{neg}}_{j=1})=\frac{\exp{-E_{\theta}(O_i,A_i)}}{\exp{-E_{\theta}{(O_i,A_i)}}+\sum^{N_{neg}}_{j=1}{\exp{-E_{\theta}{(O_i,A_i^{'j})}}}}-(2)$
+![image-20230830151839362](/home/shawn/Desktop/week_report/documents/assets/image-20230830151839362.png)
 
 The fundamental idea behind this loss function is to maximize the mutual information between positive sample pairs, which are drawn from the same instance but sampled under different transformations or perspectives. The objective of the loss is to guide the network in distinguishing between positive pairs and negative pairs sampled from other instances. Here, pairs refer to Observations and Actions and the energy here can be simply defined the correlation between current observation and current action.
 
