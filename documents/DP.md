@@ -13,7 +13,7 @@
 
 - Desired translation of EEF (3)
 - Desired rotation change from current EEF (3)
-- opening or closing of the gripper fingers (1)
+- Opening or closing of the gripper fingers (1)
 
 ## HyperParameters
 
