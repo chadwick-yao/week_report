@@ -23,7 +23,7 @@
     </figure>
 </div>
 
-The network structure mainly includes 3 modules: <a href="#pre-process">Pre-Process</a>, <a href="#visual encoder">Visual Encoder</a> and <a href="#transformer">Transformer</a>.
+The noise prediction network mainly includes 3 components: <a href="#pre-process">Pre-Process</a>, <a href="#visual encoder">Visual Encoder</a> and <a href="#transformer">Transformer</a>.
 
 **Input**
 
