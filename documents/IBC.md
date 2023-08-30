@@ -337,7 +337,7 @@ $E_{\theta}(O_t, A_t)$ denotes energy predictor; $N$ is the number of the overal
 
 6: 	sample $O_i$ and $A_i$ from $D$
 
-7: 	generate $[A_i^{'j}]^{N_{neg}}_{j=1}$ based on $A_i$ and get $[A_i,[A_i^{'j}]^{N_{neg}}_{j=1}]$
+7: 	generate $[A_i^{'j}]^{N_{neg}}_{j=1}$ based on $A_i$
 
 8: 	energy = $E_{\theta}(q_{\phi}(O_i),[A_i,[A_i^{'j}]^{N_{neg}}_{j=1}])$
 
