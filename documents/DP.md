@@ -22,7 +22,7 @@
         <img align="center" src="DP/network_structure.png" alt="Network Structure" />
     </figure>
 </div>
-
+~
 The network structure mainly includes 3 modules: <a href="#pre-process">Pre-Process</a>, <a href="#visual encoder">Visual Encoder</a> and <a href="#transformer">Transformer</a>.
 
 **Input**
