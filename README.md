@@ -177,13 +177,13 @@ This week, I put my focus on some comparative experiments, i.e. tasks like CAN, 
 
 - DP
 
-- [ ] subtitle problem in Network Structure
-- [ ] make all arguments correspond to images
-- [ ] show a algorithm procedure
-- [ ] loss function k definition
+- [x] subtitle problem in Network Structure
+- [x] make all arguments correspond to images
+- [x] show a algorithm procedure
+- [x] loss function k definition
 
 - EXP
 
-- [ ] put IMG-2 in training
-- [ ] add task description 
+- [x] put IMG-2 in training
+- [x] add task description 
 

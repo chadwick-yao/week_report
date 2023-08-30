@@ -330,19 +330,19 @@ $E_{\theta}(O_t, A_t)$ denotes energy predictor; $N$ is the number of the overal
 
 1: Given: Demo dataset $D$
 
-2: Let $O_i$ and $A_i$ represent observation and action at timestep $t$, and $[\hat{A}_i^j]^{N_{neg}}_{j=1}$ denotes negative samples.
+2: Let $O_i$ and $A_i$ represent observation and action at timestep $t$, and $\{{A}_i^j\}^{N_{neg}}_{j=1}$ denotes negative samples.
 
 3: Initialize visual encoder $q_{\phi}(O_i)$.
 
-4: Initialize FCN $E_{\theta}(q_{\phi}(O_i),[A_i,[\hat{A}_i^j]^{N_{neg}}_{j=1}])$.
+4: Initialize FCN $E_{\theta}(q_{\phi}(O_i),[A_i,\{{A}_i^j\}^{N_{neg}}_{j=1}])$.
 
 5: for iteration n = 1,2, ..., do
 
 6: 	sample $O_i$ and $A_i$ from $D$
 
-7: 	generate $[\hat{A}_i^j]^{N_{neg}}_{j=1}$ based on $A_i$ and get $A_i,{{A}_i^j}^{N_{neg}}_{j=1}$
+7: 	generate $\{{A}_i^j\}^{N_{neg}}_{j=1}$ based on $A_i$ and get $A_i,{{A}_i^j}^{N_{neg}}_{j=1}$
 
-8: 	energy = $E_{\theta}(q_{\phi}(O_i),[A_i,[\hat{A}_i^j]^{N_{neg}}_{j=1}])$
+8: 	energy = $E_{\theta}(q_{\phi}(O_i),[A_i,\{{A}_i^j\}^{N_{neg}}_{j=1}])$
 
 9: 	calculate probability (2)
 

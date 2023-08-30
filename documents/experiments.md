@@ -71,17 +71,29 @@
 
 ### :rocket: Square
 
+#### Task description
+
+The robot must pick a square nut and place it on a rod. Substantially more difficult than Lift and Pick Place Can due to the precision needed to pick up the nut and insert it on the rod.
+
+#### Images
+
 <div align="center">
     <img src="assets/ACT_vs_DP_train_loss.png" />
+    <img src="assets/ACT_vs_DP_action_MSE.png" />
 </div>
+
 
 ### :rocket: Can
 
+#### Task description
 
+The robot must place a coke can from a large bin into a smaller target bin. Slightly more challenging than Lift, since picking the can is harder than picking the cube, and the can must also be placed into the bin.
 
 ### :rocket: Push T
 
+#### Task description
 
+Require pushing a T-shaped block to a fixed target with a circular end-effector.
 
 # INFERENCE
 
@@ -124,9 +136,6 @@ $MSE = \frac{1}{n} \sum_{i=1}^{n} (a_i - \hat{a}_i)^2$ Here, $a_i$ represents i-
 | optimizer | pred_n_iter    |            | 100   |
 |           | pred_n_samples |            | 100   |
 
-<div align="center">
-    <img src="assets/ACT_vs_DP_action_MSE.png" />
-</div>
 
 **SUCCESS RATE** Every 10 epochs do one time
 

@@ -315,7 +315,22 @@ obs:
 
 The pre-processing includes normalization, expanding timesteps in dimension and adding noise into actions. `num_train_timesteps` here is a hyperparameter.
 
-About adding noise details, you can find in <a href="#add noise">Add Noise</a>
+**Add Noise**
+
+$x_t=\sqrt{\overline{\alpha_t}}x_0+\sqrt{1-\overline{\alpha_t}}\epsilon$
+
+$x_0$ is the original sample, $\epsilon$ is the noise. $\beta_t $ is the forward process variances of timestep $t$. And it has $\alpha_t=1-\beta_t$. So the add_noise function can be displayed below.
+
+```python
+def add_noise(original_samples, noise, timesteps):
+    sqrt_alpha_prod = alphas_cumprod[timesteps] ** 0.5
+    sqrt_one_minus_alpha_prod = (1 - alphas_cumprod[timesteps]) ** 0.5
+    
+    noise_samples = sqrt_alpha_prod * original_samples + sqrt_one_minus_alpha_prod * noise
+    return noise_samples
+```
+
+The adding noise process can be computed through the formula below.
 
 ```python
 # diffusion_policy/policy/diffusion_transformer_hybrid_image_policy.py
@@ -445,12 +460,12 @@ class ObservationEncoder(nn.Module):
 
 **INPUTs**
 
-- smaple
+- noised_trajectory
   - definition: noised actions from <a href="#noised action">outputs</a> of Pre-Processing
   - shape: [batch_size, horizon, 7]
   - type: tensor
 
-- cond
+- obs_features
   - definition: observation features from <a href="#obs_features">outputs</a> of Visual Encoder
   - shape: [batch_size, 137]
   - type: tensor
@@ -472,10 +487,7 @@ class ObservationEncoder(nn.Module):
     	<img align="center" src="DP/image_1.png" />
         <figcaption>Transformer Network</figcaption>
     </figure>
-
-
 </div>
-
 
 `Encoder` is designed to  encode observation features and timesteps. `n_cond_layers` is a hyperparameter that can be set in configuration files, and if it’s > 0, the transformer encoder will replace MLP encoder. 
 
@@ -568,24 +580,9 @@ class TransformerForDiffusion(ModuleAttrMixin):
         return x
 ```
 
-### <span id="add noise">Add Noise</span>
+## Training
 
-The adding noise process can be computed through the formula below.
-
-$x_t=\sqrt{\overline{\alpha_t}}x_0+\sqrt{1-\overline{\alpha_t}}\epsilon$
-
-$x_0$ is the original sample, $\epsilon$ is the noise. $\beta_t $ is the forward process variances of timestep $t$. And it has $\alpha_t=1-\beta_t$. So the add_noise function can be displayed below.
-
-```python
-def add_noise(original_samples, noise, timesteps):
-    sqrt_alpha_prod = alphas_cumprod[timesteps] ** 0.5
-    sqrt_one_minus_alpha_prod = (1 - alphas_cumprod[timesteps]) ** 0.5
-    
-    noise_samples = sqrt_alpha_prod * original_samples + sqrt_one_minus_alpha_prod * noise
-    return noise_samples
-```
-
-### Training
+The training procedures are described in above images.
 
 The training loss is below, the goal is to train a policy $\epsilon_{\theta}$ to predict noise accurately:
 
