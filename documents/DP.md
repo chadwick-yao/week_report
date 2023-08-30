@@ -44,14 +44,8 @@ The network structure mainly includes 3 modules: <a href="#pre-process">Pre-Proc
 
 **Output**
 
-- <span id="expanded ts">expanded timesteps</span>
-  - definition: unified in dimension timestep
-  - shape: [batch_size]
-  - type: tensor
-- <span id="noised action">noised actions</span>:
-  - definition: actions with random noise
-  - shape: [batch_size, horizon, 7]
-  - type: tensor
+- <span id="expanded ts">expanded timesteps</span>: unified in dimension timestep (batch_size)
+- <span id="noised action">noised actions</span>: actions with random noise (batch_size, horizon, 7)
 
 **Details**
 
