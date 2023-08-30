@@ -23,7 +23,7 @@
     </figure>
 </div>
 
-**INPUTS**
+**Input**
 
 - timesteps
   - definition: diffusion step
@@ -38,23 +38,7 @@
   - shape: see below
   - type: dict
 
-```yaml
-obs:
-	agentview_image:
-		shape: [batch_size, n_obs_steps, 3, 84, 84]
-		type: rgb
-	robot0_eye_in_hand_image:
-		shape: [batch_size, n_obs_steps, 3, 84, 84]
-		type: rgb
-	robot0_eef_pos:
-		shape: [batch_size, n_obs_steps, 3]
-	robot0_eef_quat:
-		shape: [batch_size, n_obs_steps, 4]
-	robot0_gripper_qpos:
-		shape: [batch_size, n_obs_steps, 2]
-```
-
-**OUTPUT**
+**Output**
 
 - pred_noise
   - definition: Expected noise at timestep `timesteps` given `obs`
