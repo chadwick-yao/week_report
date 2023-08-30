@@ -23,6 +23,8 @@
     </figure>
 </div>
 
+The network structure mainly includes 3 modules: <a href="#pre-process">Pre-Process</a>, <a href="#visual encoder">Visual Encoder</a> and <a href="#transformer">Transformer</a>.
+
 **Input**
 
 - timesteps
@@ -45,7 +47,7 @@
   - shape: [batch_size, horizon, 7]
   - type: tensor
  
-The overall structure can be simplified as a picture above, which includes 3 modules, i.e. <a href="#pre-process">Pre-Process</a>, <a href="#visual encoder">Visual Encoder</a> and <a href="#transformer">Transformer</a>. And this article will discuss these parts in details below. 
+
 
 ### <span id="pre-process">Pre-Process</span>
 
