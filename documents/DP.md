@@ -37,18 +37,12 @@ The network structure mainly includes 3 modules: <a href="#pre-process">Pre-Proc
 
 ### <span id="pre-process">Pre-Process</span>
 
-**INPUTS**
+**Input**
 
 - timesteps
-  - definition: diffusion step
-  - shape: [1]
-  - type: tensor
 - actions
-  - definition: original action sequence
-  - shape: [batch_size, horizon, 7]
-  - type: tensor
 
-**OUTPUT**
+**Output**
 
 - <span id="expanded ts">expanded timesteps</span>
   - definition: unified in dimension timestep
