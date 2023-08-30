@@ -42,7 +42,7 @@ Group: /data/demo_0
     Dataset: /data/demo_0/obs/robot0_joint_vel    shape: (127, 7)
 ```
 
-### <span id="obs shape">observation</span>
+### <span id="obs shape">Observation</span>
 
 Here observation includes an agent view image, a robot image from its hand, end effector's positions and quaternion, and robot gripper positions. 
 
