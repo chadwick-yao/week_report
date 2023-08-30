@@ -23,7 +23,7 @@
     </figure>
 </div>
 
-The noise prediction network $\epsinlon_\theta(O_t, A_t ,k)$ mainly includes 3 components: <a href="#pre-process">Pre-Process</a>, <a href="#visual encoder">Visual Encoder</a> and <a href="#transformer">Transformer</a>.
+The noise prediction network $\epsilon_\theta(O_t, A_t ,k)$ mainly includes 3 components: <a href="#pre-process">Pre-Process</a>, <a href="#visual encoder">Visual Encoder</a> and <a href="#transformer">Transformer</a>.
 
 **Input**
 
