@@ -316,10 +316,13 @@ In this work, it proposes to reformulate BC using implicit models - specifically
 
 
 The training consists of generating a set of negative counter-examples $\{\widehat{A}_i^j\}^{N_{neg}}_{j=1}$ for each sample $A_i$ in a batch, and employing an InfoNCE-style loss function.
+$$
+Loss=\sum^B_{k=1}{\sum^N_{i=1}{-\log{(p_{\theta}{(A_i|O_i,\{\hat{A}_i^j\}^{N_{neg}}_{j=1})})}}}
+$$
 
-$Loss=\sum^B_{k=1}{\sum^N_{i=1}{-\log{(p_{\theta}{(A_i|O_i,\{\hat{A}_i^j\}^{N_{neg}}_{j=1})})}}}-(1)$
-
-$p_{\theta}(A_i|O_i,\{\hat{A}_i^j\}^{N_{neg}}_{j=1})=\frac{\exp{-E_{\theta}(O_i,A_i)}}{\exp{-E_{\theta}{(O_i,A_i)}}+\sum^{N_{neg}}_{j=1}{\exp{-E_{\theta}{(O_i,\hat{A}_i^j)}}}}-(2)$
+$$
+p_{\theta}(A_i|O_i,\{\hat{A}_i^j\}^{N_{neg}}_{j=1})=\frac{\exp{-E_{\theta}(O_i,A_i)}}{\exp{-E_{\theta}{(O_i,A_i)}}+\sum^{N_{neg}}_{j=1}{\exp{-E_{\theta}{(O_i,\hat{A}_i^j)}}}}
+$$
 
 The fundamental idea behind this loss function is to maximize the mutual information between positive sample pairs, which are drawn from the same instance but sampled under different transformations or perspectives. The objective of the loss is to guide the network in distinguishing between positive pairs and negative pairs sampled from other instances. Here, pairs refer to Observations and Actions and the energy here can be simply defined the correlation between current observation and current action.
 
@@ -327,19 +330,19 @@ $E_{\theta}(O_t, A_t)$ denotes energy predictor; $N$ is the number of the overal
 
 1: Given: Demo dataset $D$
 
-2: Let $O_i$ and $A_i$ represent observation and action at timestep $t$, and $\{\hat{A}_i^j\}^{N_{neg}}_{j=1}$ denotes negative samples.
+2: Let $O_i$ and $A_i$ represent observation and action at timestep $t$, and $[\hat{A}_i^j]^{N_{neg}}_{j=1}$ denotes negative samples.
 
 3: Initialize visual encoder $q_{\phi}(O_i)$.
 
-4: Initialize FCN $E_{\theta}(q_{\phi}(O_i),[A_i,\{\hat{A}_i^j\}^{N_{neg}}_{j=1}])$.
+4: Initialize FCN $E_{\theta}(q_{\phi}(O_i),[A_i,[\hat{A}_i^j]^{N_{neg}}_{j=1}])$.
 
 5: for iteration n = 1,2, ..., do
 
 6: 	sample $O_i$ and $A_i$ from $D$
 
-7: 	generate $\{\hat{A}_i^j\}^{N_{neg}}_{j=1}$ based on $A_i$ and get $[A_i,\{\hat{A}_i^j\}^{N_{neg}}_{j=1}]$
+7: 	generate $[\hat{A}_i^j]^{N_{neg}}_{j=1}$ based on $A_i$ and get $[A_i,[\hat{A}_i^j]^{N_{neg}}_{j=1}]$
 
-8: 	energy = $E_{\theta}(q_{\phi}(O_i),[A_i,\{\hat{A}_i^j\}^{N_{neg}}_{j=1}])$
+8: 	energy = $E_{\theta}(q_{\phi}(O_i),[A_i,[\hat{A}_i^j]^{N_{neg}}_{j=1}])$
 
 9: 	calculate probability (2)
 
