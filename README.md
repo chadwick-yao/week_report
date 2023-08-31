@@ -157,12 +157,33 @@ This week, I put my focus on some comparative experiments, i.e. tasks like CAN, 
 
 :pushpin: IBC policy has a extreme bad performance when doing the SQUARE task.
 
-​	:dart: In the DP paper, it described that IBC exactly had a bad performance under SQUARE task scenario. Then, I tried Push-T scenario and got the close success rate as the paper says.
+:dart: In the DP paper, it described that IBC exactly had a bad performance under SQUARE task scenario. Then, I tried Push-T scenario and got the close success rate as the paper says.
 
 :pushpin: Confusion about how package ROBOMIMIC initializes the environment, such as the initial pose of robot, square nut pose and position, even the table settings.
 
-​	:dart: <a href="https://github.com/Dominique-Yiu/week_report/blob/master/documents/experiments.md">Details</a>
+:dart: <a href="https://github.com/Dominique-Yiu/week_report/blob/master/documents/experiments.md">Details</a>
 
 ### Next week targets
 
 :round_pushpin: More exp
+
+- IBC
+
+- [x] Network Image, add action pre-processing module
+- [x] specify the action pre-processing, how it works
+- [x] Formulation display error
+- [x] Visualize the training process, e.g. show a algorithm procedure
+- [x] issues on energy, figure out plz
+
+- DP
+
+- [x] subtitle problem in Network Structure
+- [x] make all arguments correspond to images
+- [x] show a algorithm procedure
+- [x] loss function k definition
+
+- EXP
+
+- [x] put IMG-2 in training
+- [x] add task description 
+

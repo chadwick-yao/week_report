@@ -2,320 +2,116 @@
 
 ## Data
 
-### Original Data in HDF5 File
+### Dataset
 
-The official provides dataset in `hdf5` format. The `hdf5` file saves many stuffs of demonstrations, such as actions, dones(whether the episode is done), rewards, states(vectors describing the robot states), and obs. However, for training the policy, here just uses a part of this dataset.
+This section shows the whole dataset structure of every demonstration. It saves action the robot did, rewards the robot got, states of the whole settings, whether the task was done, and observations at every timestep. The observations contains images from two cameras, end-effector states, joint states and gripper states.
 
-```yaml
-Group: /data/demo_0
-  Dataset: /data/demo_0/actions    shape: (127, 7)
-  Dataset: /data/demo_0/dones    shape: (127,)
-  Dataset: /data/demo_0/rewards    shape: (127,)
-  Dataset: /data/demo_0/states    shape: (127, 45)
-  Group: /data/demo_0/next_obs
-    Dataset: /data/demo_0/next_obs/agentview_image    shape: (127, 84, 84, 3)
-    Dataset: /data/demo_0/next_obs/object    shape: (127, 14)
-    Dataset: /data/demo_0/next_obs/robot0_eef_pos    shape: (127, 3)
-    Dataset: /data/demo_0/next_obs/robot0_eef_quat    shape: (127, 4)
-    Dataset: /data/demo_0/next_obs/robot0_eef_vel_ang    shape: (127, 3)
-    Dataset: /data/demo_0/next_obs/robot0_eef_vel_lin    shape: (127, 3)
-    Dataset: /data/demo_0/next_obs/robot0_eye_in_hand_image    shape: (127, 84, 84, 3)
-    Dataset: /data/demo_0/next_obs/robot0_gripper_qpos    shape: (127, 2)
-    Dataset: /data/demo_0/next_obs/robot0_gripper_qvel    shape: (127, 2)
-    Dataset: /data/demo_0/next_obs/robot0_joint_pos    shape: (127, 7)
-    Dataset: /data/demo_0/next_obs/robot0_joint_pos_cos    shape: (127, 7)
-    Dataset: /data/demo_0/next_obs/robot0_joint_pos_sin    shape: (127, 7)
-    Dataset: /data/demo_0/next_obs/robot0_joint_vel    shape: (127, 7)
-  Group: /data/demo_0/obs
-    Dataset: /data/demo_0/obs/agentview_image    shape: (127, 84, 84, 3)
-    Dataset: /data/demo_0/obs/object    shape: (127, 14)
-    Dataset: /data/demo_0/obs/robot0_eef_pos    shape: (127, 3)
-    Dataset: /data/demo_0/obs/robot0_eef_quat    shape: (127, 4)
-    Dataset: /data/demo_0/obs/robot0_eef_vel_ang    shape: (127, 3)
-    Dataset: /data/demo_0/obs/robot0_eef_vel_lin    shape: (127, 3)
-    Dataset: /data/demo_0/obs/robot0_eye_in_hand_image    shape: (127, 84, 84, 3)
-    Dataset: /data/demo_0/obs/robot0_gripper_qpos    shape: (127, 2)
-    Dataset: /data/demo_0/obs/robot0_gripper_qvel    shape: (127, 2)
-    Dataset: /data/demo_0/obs/robot0_joint_pos    shape: (127, 7)
-    Dataset: /data/demo_0/obs/robot0_joint_pos_cos    shape: (127, 7)
-    Dataset: /data/demo_0/obs/robot0_joint_pos_sin    shape: (127, 7)
-    Dataset: /data/demo_0/obs/robot0_joint_vel    shape: (127, 7)
+```
+.demo
+├── actions	shape: (episode length, 7)
+├── dones	shape: (episode length,)
+├── rewards	shape: (episode length,)
+├── states	shape: (episode length, 45)
+├── obs
+	├── agentview_image			shape: (episode length, 84, 84, 3)
+	├── robot0_eye_in_hand_image		shape: (episode length, 84, 84, 3)
+	├── robot0_eef_pos			shape: (episode length, 3)
+	├── robot0_eef_quat 			shape: (episode length, 4)
+	├── robot0_eef_vel_ang			shape: (episode length, 3)
+	├── robot0_eef_vel_lin			shape: (episode length, 3)
+	├── robot0_gripper_qpos			shape: (episode length, 2)
+	├── robot0_gripper_qvel			shape: (episode length, 2)
+	├── robot0_joint_pos    		shape: (episode length, 7)
+	├── robot0_joint_pos_cos    		shape: (episode length, 7)
+	├── robot0_joint_pos_sin    		shape: (episode length, 7)
+	├── robot0_joint_vel    		shape: (episode length, 7)
+	└── object    				shape: (episode length, 14)
+├── next_obs
+	├── agentview_image			shape: (episode length, 84, 84, 3)
+	├── robot0_eye_in_hand_image		shape: (episode length, 84, 84, 3)
+	├── robot0_eef_pos			shape: (episode length, 3)
+	├── robot0_eef_quat 			shape: (episode length, 4)
+	├── robot0_eef_vel_ang			shape: (episode length, 3)
+	├── robot0_eef_vel_lin			shape: (episode length, 3)
+	├── robot0_gripper_qpos			shape: (episode length, 2)
+	├── robot0_gripper_qvel			shape: (episode length, 2)
+	├── robot0_joint_pos    		shape: (episode length, 7)
+	├── robot0_joint_pos_cos    		shape: (episode length, 7)
+	├── robot0_joint_pos_sin    		shape: (episode length, 7)
+	├── robot0_joint_vel    		shape: (episode length, 7)
+	└── object    				shape: (episode length, 14)
 ```
 
-### <span id="obs shape">observation</span>
+### <span id="obs shape">Observation</span>
 
-Here observation includes an agent view image, a robot image from its hand, end effector's positions and quaternion, and robot gripper positions. 
+- Image of the top-down camera [84, 84, 3], rgb
+- Image of the wrist camera [84, 84, 3], rgb
+- End effector's position and orientation (3, 4), low_dim
+- Gripper's position (2), low_dim
 
-```yaml
-agentview_image:
-  shape: [3, 84, 84]
-  type: rgb
-robot0_eye_in_hand_image:
-  shape: [3, 84, 84]
-  type: rgb
-robot0_eef_pos:
-  shape: [3]
-  # type default: low_dim
-robot0_eef_quat:
-  shape: [4]
-robot0_gripper_qpos:
-  shape: [2]
-```
+The default type of observations is low dimension. The type of data would affect its network structure which will process the data itself later.
 
-### action
+### Action
 
-The first three dimension of action is to describe end effector's position change, and the subsequent three dimension is to illustrate rotation change, and the last dimension is to record gripper's status.
-
-```txt
-desired translation of EEF(3), desired delta rotation from current EEF(3), and opening and closing of the gripper fingers:
-	shape: [7]
-```
-
-
-
-## HyperParameters
-
-DDMP algorithm hyperparameters of policy, it can affect the denoising performance.
-
-| name          | definition                                                   | value             |
-| ------------- | ------------------------------------------------------------ | ----------------- |
-| beta_start    | the starting beta value of inference                         | 0.0001            |
-| beta_end      | the final beta value                                         | 0.02              |
-| beta_schedule | the beta schedule, a mapping from a beta range to a sequence of betas for stepping the model | squaredcos_cap_v2 |
-
-Task configuration of policy.
-
-| name           | definition                                               | value |
-| -------------- | -------------------------------------------------------- | ----- |
-| horizon        | the step number of predicted action                      | 10    |
-| n_action_steps | the step number of executing action                      | 8     |
-| n_obs_steps    | the step number of obs that the model prediction depends | 2     |
-
-Image processing of policy
-
-| name       | definition                                | value |
-| ---------- | ----------------------------------------- | ----- |
-| crop_shape | the target image dimension after cropping | 10    |
-
-Hyperparameters of model(transformer) that the policy uses.
-
-| name        | definition                                     | value |
-| ----------- | ---------------------------------------------- | ----- |
-| n_layer     | the layer of decoder/encoder                   | 8     |
-| n_head      | head number of multi-head attention            | 4     |
-| n_emb       | embedding dimension                            | 256   |
-| p_drop_emb  | drop prob of nn.Dropout before encoder/decoder | 0.0   |
-| p_drop_attn | drop prob of nn.Dropout in transformer layer   | 0.3   |
-
-EMA parameters.
-
-| name      | definition                                  | value  |
-| --------- | ------------------------------------------- | ------ |
-| inv_gamma | inverse multiplicative factor of EMA warmup | 1.0    |
-| power     | exponential factor of EMA warup             | 0.75   |
-| min_value | the minimum EMA decay rate                  | 0.0    |
-| max_value | the maximum EMA decay rate                  | 0.9999 |
-
-dataloader：
-
-| name        | definition                            | value |
-| ----------- | ------------------------------------- | ----- |
-| batch_size  | batch size                            | 64    |
-| num_workers | number of processes when loading data | 8     |
-
-optimizer:
-
-| name                     | definition                                               | value       |
-| ------------------------ | -------------------------------------------------------- | ----------- |
-| transformer_weight_decay | transformer weight decay                                 | 1.0e-3      |
-| obs_encoder_weight_decay | obs encoder weight decay                                 | 1.0e-6      |
-| learning_rate            | learning rate                                            | 1.0e-4      |
-| betas                    | decay rate of first-order moment and second-order moment | [0.9, 0.95] |
-
-```yaml
-policy: # policy configuration
-	_target_: DiffusionTransformerHybridImagePolicy # policy type
-	
-	shape_meta: # observations and actions specification
-        obs:
-            agentview_image:
-                shape: [3, 84, 84]
-                type: rgb
-            robot0_eye_in_hand_image:
-                shape: [3, 84, 84]
-                type: rgb
-            robot0_eef_pos:
-                shape: [3]
-                # type default: low_dim
-            robot0_eef_quat:
-                shape: [4]
-            robot0_gripper_qpos:
-                shape: [2]
-        action: 
-			shape: [7]
-    
-    noise_scheduler: # DDPM algorithm's hyperparameters
-    	_target: DDPMScheduler	# algorithm type
-    	num_train_timesteps: 100
-    	beta_start: 0.0001
-    	beta_end: 0.02
-    	beta_schedule: squaredcos_cap_v2
-        variance_type: fixed_small # Yilun's paper uses fixed_small_log instead, but easy to cause Nan
-        clip_sample: True # required when predict_epsilon=False
-        prediction_type: epsilon # or sample
-    # task cfg
-    horizon: 10 # dataset sequence length
-    n_action_steps: 8	# number of steps of action will be executed
-    n_obs_steps: 2 # the latest steps of observations data as input
-    num_inference_steps: 100
-    # image cfg
-    crop_shape: [76, 76]	# images will be cropped into [76, 76]
-    obs_encoder_group_norm: False,
-    # arch
-    n_layer: 8	# transformer decoder/encoder layer number
-    n_cond_layers: 0  # >0: use transformer encoder for cond, otherwise use MLP
-    n_head: 4	# head number
-    n_emb: 256	# embedding dim (input dim --(emb)--> n_emb)
-    p_drop_emb: 0.0	# dropout prob (before encoder&decoder)
-    p_drop_attn: 0.3	# encoder_layer dropout prob
-    causal_attn: True	# mask or not
-    time_as_cond: True # if false, use BERT like encoder only arch, time as input
-    obs_as_cond: True
-
-# if ema is true
-ema:
-    _target_: diffusion_policy.model.diffusion.ema_model.EMAModel
-    update_after_step: 0
-    inv_gamma: 1.0
-    power: 0.75
-    min_value: 0.0
-    max_value: 0.9999
-dataloader:
-    batch_size: 64
-    num_workers: 8
-    shuffle: True
-    pin_memory: True
-    persistent_workers: False
-
-val_dataloader:
-    batch_size: 64
-    num_workers: 8
-    shuffle: False
-    pin_memory: True
-    persistent_workers: False
-
-optimizer:
-    transformer_weight_decay: 1.0e-3
-    obs_encoder_weight_decay: 1.0e-6
-    learning_rate: 1.0e-4
-    betas: [0.9, 0.95]
-
-training:
-    device: "cuda:0"
-    seed: 42
-    debug: False
-    resume: True
-    # optimization
-    lr_scheduler: cosine
-    # Transformer needs LR warmup
-    lr_warmup_steps: 10
-    num_epochs: 100
-    gradient_accumulate_every: 1
-    # EMA destroys performance when used with BatchNorm
-    # replace BatchNorm with GroupNorm.
-    use_ema: True
-    # training loop control
-    # in epochs
-    rollout_every: 10
-    checkpoint_every: 10
-    val_every: 1
-    sample_every: 5
-    # steps per epoch
-    max_train_steps: null
-    max_val_steps: null
-    # misc
-    tqdm_interval_sec: 1.0
-```
+- Desired translation of EEF (3)
+- Desired rotation change from current EEF (3)
+- Opening or closing of the gripper fingers (1)
 
 ## Network Structure
 
 <div align="center">
     <figure id="network structure">
         <img align="center" src="DP/network_structure.png" alt="Network Structure" />
-        <figcaption>Network Structure</figcaption>
     </figure>
 </div>
 
+The noise prediction network $\epsilon_{\theta}(O_t, A_t^k, k)$ mainly includes 3 components: <a href="#pre-process">Pre-Process</a>, <a href="#visual encoder">Visual Encoder</a> and <a href="#transformer">Transformer</a>.
 
-The overall structure can be simplified as a picture above, which includes 3 modules, i.e. <a href="#pre-process">Pre-Process</a>, <a href="#visual encoder">Visual Encoder</a> and <a href="#transformer">Transformer</a>. And this article will discuss these parts in details below. 
+**Input**
 
-**INPUTS**
+- timesteps: diffusion step (1)
+- actions: action sequence (batch_size, horizon, 7)
+- obs: observations
 
-- timesteps
-  - definition: diffusion step
-  - shape: [1]
-  - type: tensor
-- actions
-  - definition: original action sequence
-  - shape: [batch_size, horizon, 7]
-  - type: tensor
-- obs
-  - definition: observations
-  - shape: see below
-  - type: dict
+**Output**
 
-```yaml
-obs:
-	agentview_image:
-		shape: [batch_size, n_obs_steps, 3, 84, 84]
-		type: rgb
-	robot0_eye_in_hand_image:
-		shape: [batch_size, n_obs_steps, 3, 84, 84]
-		type: rgb
-	robot0_eef_pos:
-		shape: [batch_size, n_obs_steps, 3]
-	robot0_eef_quat:
-		shape: [batch_size, n_obs_steps, 4]
-	robot0_gripper_qpos:
-		shape: [batch_size, n_obs_steps, 2]
-```
-
-**OUTPUT**
-
-- pred_noise
-  - definition: Expected noise at timestep `timesteps` given `obs`
-  - shape: [batch_size, horizon, 7]
-  - type: tensor
+- pred_noise: predicted noise $\epsilon_{\theta}(O_t, A_t^k, k)$ (batch_size, horizon, 7)
 
 ### <span id="pre-process">Pre-Process</span>
 
-**INPUTS**
-
-- timesteps
-  - definition: diffusion step
-  - shape: [1]
-  - type: tensor
-- actions
-  - definition: original action sequence
-  - shape: [batch_size, horizon, 7]
-  - type: tensor
-
-**OUTPUT**
-
-- <span id="expanded ts">expanded timesteps</span>
-  - definition: unified in dimension timestep
-  - shape: [batch_size]
-  - type: tensor
-- <span id="noised action">noised actions</span>:
-  - definition: actions with random noise
-  - shape: [batch_size, horizon, 7]
-  - type: tensor
+|         |                name & shape                |                          definition                          |
+| :-----: | :----------------------------------------: | :----------------------------------------------------------: |
+| Input  |              timesteps \| [1]              | diffusion step, an integer randomly chosen from [0, num_train_timesteps] |
+|         |    actions \| [batch_size, horizon, 7]     |                   original action sequence                   |
+| Output |     expanded timesteps \| [batch_size]     |                unified in dimension timesteps                |
+|         | noised actions \| [batch_size, horizon, 7] |         actions with noise from normal distribution          |
 
 **Details**
 
 The pre-processing includes normalization, expanding timesteps in dimension and adding noise into actions. `num_train_timesteps` here is a hyperparameter.
 
-About adding noise details, you can find in <a href="#add noise">Add Noise</a>
+> **Add Noise Algorithm**
+>
+> $x_t=\sqrt{\overline{\alpha_t}}x_0+\sqrt{1-\overline{\alpha_t}}\epsilon$
+>
+> $x_0$ is the original sample, $\epsilon$ is the noise from normal distribution. $\beta_t $ is the forward process variances of timestep $t$. And it has $\alpha_t=1-\beta_t$. So the add_noise function can be displayed below.
+>
+> ```python
+> def add_noise(original_samples, noise, timesteps):
+>     sqrt_alpha_prod = alphas_cumprod[timesteps] ** 0.5
+>     sqrt_one_minus_alpha_prod = (1 - alphas_cumprod[timesteps]) ** 0.5
+>     
+>     noise_samples = sqrt_alpha_prod * original_samples + sqrt_one_minus_alpha_prod * noise
+>     return noise_samples
+> ```
+>
+
+This pre-processing has the following steps shown in below code.
+
+1. Normalize actions from one batch
+2. Sample noise and timesteps
+3. Expand timesteps in the 1st dimension
+4. Add noise into normalized actions.
 
 ```python
 # diffusion_policy/policy/diffusion_transformer_hybrid_image_policy.py
@@ -349,23 +145,10 @@ class DiffusionTransformerHybridImagePolicy(BaseImagePolicy):
 
 ### <span id="visual encoder">Visual Encoder</span>
 
-**INPUTs**
-
-- obs
-
-  - definition: observations
-
-  - shape: see above
-
-  - type: dict
-
-**OUTPUTs**
-
-- <span id="obs_features">obs_features</span>
-
-  - definition: features extracted from observations
-  - shape: [batch_size, 137]
-  - type: tensor
+|         |           name & shape            |      definition       |
+| :-----: | :-------------------------------: | :-------------------: |
+| Input  |         obs \| see above          | original observations |
+| Output | obs_features \| [batch_size, 137] | observation features  |
 
 <div align="center">
     <figure id="visual_image">
@@ -441,41 +224,21 @@ class ObservationEncoder(nn.Module):
         return torch.cat(feats, dim=-1)
 ```
 
-### Transformer 
+### Transformer
 
-**INPUTs**
-
-- smaple
-  - definition: noised actions from <a href="#noised action">outputs</a> of Pre-Processing
-  - shape: [batch_size, horizon, 7]
-  - type: tensor
-
-- cond
-  - definition: observation features from <a href="#obs_features">outputs</a> of Visual Encoder
-  - shape: [batch_size, 137]
-  - type: tensor
-- timesteps
-  - definition: unified in dimension timestep from <a href="#expanded ts">outputs</a> of Pre-Processing
-  - shape: [batch_size]
-  - type: tensor
-
-
-**OUTPUT**
-
-- pred_noise
-  - definition: Expected noise at timestep `timesteps` given `obs`
-  - shape: [batch_size, horizon, 7]
-  - type: tensor
+|         |                 name & shape                  |                          definition                          |
+| :-----: | :-------------------------------------------: | :----------------------------------------------------------: |
+| Input  | noised_trajectory \| [batch_size, horizon, 7] | noised actions from <a href="#noised action">outputs</a> of Pre-Processing |
+|         |       obs_features \| [batch_size, 137]       | observation features from <a href="#obs_features">outputs</a> of Visual Encoder |
+|         |           timesteps \| [batch_size]           | unified in dimension timesteps from <a href="#expanded ts">outputs</a> of Pre-Processin |
+| Output |    pred_noise \| [batch_size, horizon, 7]     |          expected noise at `timesteps` given `obs`           |
 
 <div align="center">
     <figure>
     	<img align="center" src="DP/image_1.png" />
         <figcaption>Transformer Network</figcaption>
     </figure>
-
-
 </div>
-
 
 `Encoder` is designed to  encode observation features and timesteps. `n_cond_layers` is a hyperparameter that can be set in configuration files, and if it’s > 0, the transformer encoder will replace MLP encoder. 
 
@@ -568,24 +331,11 @@ class TransformerForDiffusion(ModuleAttrMixin):
         return x
 ```
 
-### <span id="add noise">Add Noise</span>
+## Training
 
-The adding noise process can be computed through the formula below.
-
-$x_t=\sqrt{\overline{\alpha_t}}x_0+\sqrt{1-\overline{\alpha_t}}\epsilon$
-
-$x_0$ is the original sample, $\epsilon$ is the noise. $\beta_t $ is the forward process variances of timestep $t$. And it has $\alpha_t=1-\beta_t$. So the add_noise function can be displayed below.
-
-```python
-def add_noise(original_samples, noise, timesteps):
-    sqrt_alpha_prod = alphas_cumprod[timesteps] ** 0.5
-    sqrt_one_minus_alpha_prod = (1 - alphas_cumprod[timesteps]) ** 0.5
-    
-    noise_samples = sqrt_alpha_prod * original_samples + sqrt_one_minus_alpha_prod * noise
-    return noise_samples
-```
-
-### Training
+<div align="center">
+    <img src="assets/image-20230831131340802.png" />
+</div>
 
 The training loss is below, the goal is to train a policy $\epsilon_{\theta}$ to predict noise accurately:
 
@@ -850,8 +600,174 @@ class TrainDiffusionTransformerHybridWorkspace(BaseWorkspace):
                 self.epoch += 1
 ```
 
+## HyperParameters
+
+DDMP algorithm hyperparameters of policy, it can affect the denoising performance.
+
+| name          | definition                                                   | value             |
+| ------------- | ------------------------------------------------------------ | ----------------- |
+| beta_start    | the starting beta value of inference                         | 0.0001            |
+| beta_end      | the final beta value                                         | 0.02              |
+| beta_schedule | the beta schedule, a mapping from a beta range to a sequence of betas for stepping the model | squaredcos_cap_v2 |
+
+Task configuration of policy.
+
+| name           | definition                                               | value |
+| -------------- | -------------------------------------------------------- | ----- |
+| horizon        | the step number of predicted action                      | 10    |
+| n_action_steps | the step number of executing action                      | 8     |
+| n_obs_steps    | the step number of obs that the model prediction depends | 2     |
+
+Image processing of policy
+
+| name       | definition                                | value |
+| ---------- | ----------------------------------------- | ----- |
+| crop_shape | the target image dimension after cropping | 10    |
+
+Hyperparameters of model(transformer) that the policy uses.
+
+| name        | definition                                     | value |
+| ----------- | ---------------------------------------------- | ----- |
+| n_layer     | the layer of decoder/encoder                   | 8     |
+| n_head      | head number of multi-head attention            | 4     |
+| n_emb       | embedding dimension                            | 256   |
+| p_drop_emb  | drop prob of nn.Dropout before encoder/decoder | 0.0   |
+| p_drop_attn | drop prob of nn.Dropout in transformer layer   | 0.3   |
+
+EMA parameters.
+
+| name      | definition                                  | value  |
+| --------- | ------------------------------------------- | ------ |
+| inv_gamma | inverse multiplicative factor of EMA warmup | 1.0    |
+| power     | exponential factor of EMA warup             | 0.75   |
+| min_value | the minimum EMA decay rate                  | 0.0    |
+| max_value | the maximum EMA decay rate                  | 0.9999 |
+
+dataloader：
+
+| name        | definition                            | value |
+| ----------- | ------------------------------------- | ----- |
+| batch_size  | batch size                            | 64    |
+| num_workers | number of processes when loading data | 8     |
+
+optimizer:
+
+| name                     | definition                                               | value       |
+| ------------------------ | -------------------------------------------------------- | ----------- |
+| transformer_weight_decay | transformer weight decay                                 | 1.0e-3      |
+| obs_encoder_weight_decay | obs encoder weight decay                                 | 1.0e-6      |
+| learning_rate            | learning rate                                            | 1.0e-4      |
+| betas                    | decay rate of first-order moment and second-order moment | [0.9, 0.95] |
+
+```
+policy: # policy configuration
+	_target_: DiffusionTransformerHybridImagePolicy # policy type
+	shape_meta: # observations and actions specification
+	obs:
+            agentview_image:
+                shape: [3, 84, 84]
+                type: rgb
+            robot0_eye_in_hand_image:
+                shape: [3, 84, 84]
+                type: rgb
+            robot0_eef_pos:
+                shape: [3]
+                # type default: low_dim
+            robot0_eef_quat:
+                shape: [4]
+            robot0_gripper_qpos:
+                shape: [2]
+        action: 
+		shape: [7]
+    
+    noise_scheduler: # DDPM algorithm's hyperparameters
+    	_target: DDPMScheduler	# algorithm type
+    	num_train_timesteps: 100
+    	beta_start: 0.0001
+    	beta_end: 0.02
+    	beta_schedule: squaredcos_cap_v2
+        variance_type: fixed_small # Yilun's paper uses fixed_small_log instead, but easy to cause Nan
+        clip_sample: True # required when predict_epsilon=False
+        prediction_type: epsilon # or sample
+    # task cfg
+    horizon: 10 # dataset sequence length
+    n_action_steps: 8	# number of steps of action will be executed
+    n_obs_steps: 2 # the latest steps of observations data as input
+    num_inference_steps: 100
+    # image cfg
+    crop_shape: [76, 76]	# images will be cropped into [76, 76]
+    obs_encoder_group_norm: False,
+    # arch
+    n_layer: 8	# transformer decoder/encoder layer number
+    n_cond_layers: 0  # >0: use transformer encoder for cond, otherwise use MLP
+    n_head: 4	# head number
+    n_emb: 256	# embedding dim (input dim --(emb)--> n_emb)
+    p_drop_emb: 0.0	# dropout prob (before encoder&decoder)
+    p_drop_attn: 0.3	# encoder_layer dropout prob
+    causal_attn: True	# mask or not
+    time_as_cond: True # if false, use BERT like encoder only arch, time as input
+    obs_as_cond: True
+
+# if ema is true
+ema:
+    _target_: diffusion_policy.model.diffusion.ema_model.EMAModel
+    update_after_step: 0
+    inv_gamma: 1.0
+    power: 0.75
+    min_value: 0.0
+    max_value: 0.9999
+dataloader:
+    batch_size: 64
+    num_workers: 8
+    shuffle: True
+    pin_memory: True
+    persistent_workers: False
+
+val_dataloader:
+    batch_size: 64
+    num_workers: 8
+    shuffle: False
+    pin_memory: True
+    persistent_workers: False
+
+optimizer:
+    transformer_weight_decay: 1.0e-3
+    obs_encoder_weight_decay: 1.0e-6
+    learning_rate: 1.0e-4
+    betas: [0.9, 0.95]
+
+training:
+    device: "cuda:0"
+    seed: 42
+    debug: False
+    resume: True
+    # optimization
+    lr_scheduler: cosine
+    # Transformer needs LR warmup
+    lr_warmup_steps: 10
+    num_epochs: 100
+    gradient_accumulate_every: 1
+    # EMA destroys performance when used with BatchNorm
+    # replace BatchNorm with GroupNorm.
+    use_ema: True
+    # training loop control
+    # in epochs
+    rollout_every: 10
+    checkpoint_every: 10
+    val_every: 1
+    sample_every: 5
+    # steps per epoch
+    max_train_steps: null
+    max_val_steps: null
+    # misc
+    tqdm_interval_sec: 1.0
+```
 
 ## Inference
+
+<div align="center">
+    <img src="assets/image-20230831135218882.png" />
+</div>
 
 After we got a trained policy $\epsilon_{\theta}$. We use the following formula to inference.
 
