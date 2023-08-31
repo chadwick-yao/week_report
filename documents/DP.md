@@ -74,7 +74,7 @@ The noise prediction network $\epsilon_\theta(O_t, A_t^k, k)$ mainly includes 3 
 
 **Output**
 
-- pred_noise: predicted noise $\epsilon_\theta(O_t, A_t^k, k)$ (batch_size, horizon, 7)
+- pred_noise: predicted noise $\epsilon_{\theta}(O_t, A_t^k, k)$ (batch_size, horizon, 7)
 
 ### <span id="pre-process">Pre-Process</span>
 
