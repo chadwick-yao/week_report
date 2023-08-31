@@ -66,8 +66,11 @@
 - ACT training loss: $q_{\phi}(z|a_{t:t+k},O_t)$ denotes encoder, $\pi_{\theta}(\widehat{a}_{t:t+k}|O_t,z)$ denotes decoder, weight $\beta$ 
   - $Loss=MSE(\pi_{\theta}(O_t, z),a_{t:t+k})+\beta D_{KL}(q_{\phi}(z|a_{t:t+k},O_t) || N(0,1))$
 - IBC training loss: $E_{\theta}(O_t, A_t)$ denotes energy predictor
-  - $Loss=\sum^N_{i=1}{-\log(p_{\theta}(A_i|O_i,\{\widehat{A}_i^j\}^{N_{neg}}_{j=1}))}$
-  - $p_{\theta}(A_i|O_i,\{\widehat{A}_i^j\}^{N_{neg}}_{j=1})=\frac{\exp{-E_{\theta}(O_i,A_i)}}{\exp{-E_{\theta}(O_i,A_i)}+\sum^{N_{neg}}_{j=1}{\exp{-E_{\theta}(O_i,\widehat{A}_i^j)}}}$
+
+<div align="center">
+    <img src="assets/image-20230831162636292.png" />
+    <img src="assets/image-20230830151839362.png" />
+</div>
 
 ### :rocket: Square
 
@@ -88,6 +91,11 @@ The robot must pick a square nut and place it on a rod. Substantially more diffi
 #### Task description
 
 The robot must place a coke can from a large bin into a smaller target bin. Slightly more challenging than Lift, since picking the can is harder than picking the cube, and the can must also be placed into the bin.
+
+<div align="center">
+    <img src="assets/ACT_vs_DP_train_loss_can.png" />
+    <img src="assets/ACT_vs_DP_action_MSE_can.png" />
+</div>
 
 ### :rocket: Push T
 
@@ -167,6 +175,20 @@ $MSE = \frac{1}{n} \sum_{i=1}^{n} (a_i - \hat{a}_i)^2$ Here, $a_i$ represents i-
 
 
 ### :rocket: Can
+
+**Additional parameters in IBC when doing testing**
+
+|           | name           | definition | value |
+| --------- | -------------- | ---------- | ----- |
+| optimizer | pred_n_iter    |            | 100   |
+|           | pred_n_samples |            | 100   |
+
+
+**SUCCESS RATE** Every 10 epochs do one time
+
+<div align="center">
+    <img src="assets/can_success_rate.png" />
+</div>
 
 
 

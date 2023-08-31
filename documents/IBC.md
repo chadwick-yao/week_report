@@ -265,10 +265,8 @@ The training consists of generating a set of negative counter-examples $[A_i^j]^
 
 <div align="center">
     <img src="assets/image-20230831162636292.png" />
+    <img src="assets/image-20230830151839362.png" />
 </div>
-
-![image-20230830151839362](assets/image-20230830151839362.png)
-
 The fundamental idea behind this loss function is to maximize the mutual information between positive sample pairs, which are drawn from the same instance but sampled under different transformations or perspectives. The objective of the loss is to guide the network in distinguishing between positive pairs and negative pairs sampled from other instances. Here, pairs refer to Observations and Actions and the energy here can be simply defined the correlation between current observation and current action.
 
 $E_{\theta}(O_t, A_t)$ denotes energy predictor; $N$ is the number of the overall samples. $B$ is batch size. So the training process is make the model to remember the best action given current observations. Therefore, when inferencing, we can select the best action from generated samples which are produced with the original action distribution.
