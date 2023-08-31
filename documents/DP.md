@@ -2,51 +2,51 @@
 
 ## Data
 
-### Original Data in HDF5 File
+### Dataset
 
-The official provides dataset in `hdf5` format. The `hdf5` file saves many stuffs of demonstrations, such as actions, dones(whether the episode is done), rewards, states(vectors describing the robot states), and obs. However, for training the policy, here just uses a part of this dataset.
+This section shows the whole dataset structure of every demonstration. It saves action the robot did, rewards the robot got, states of the whole settings, whether the task was done, and observations at every timestep. The observations contains images from two cameras, end-effector states, joint states and gripper states.
 
-```yaml
-Group: /data/demo_0
-  Dataset: /data/demo_0/actions    shape: (127, 7)
-  Dataset: /data/demo_0/dones    shape: (127,)
-  Dataset: /data/demo_0/rewards    shape: (127,)
-  Dataset: /data/demo_0/states    shape: (127, 45)
-  Group: /data/demo_0/next_obs
-    Dataset: /data/demo_0/next_obs/agentview_image    shape: (127, 84, 84, 3)
-    Dataset: /data/demo_0/next_obs/object    shape: (127, 14)
-    Dataset: /data/demo_0/next_obs/robot0_eef_pos    shape: (127, 3)
-    Dataset: /data/demo_0/next_obs/robot0_eef_quat    shape: (127, 4)
-    Dataset: /data/demo_0/next_obs/robot0_eef_vel_ang    shape: (127, 3)
-    Dataset: /data/demo_0/next_obs/robot0_eef_vel_lin    shape: (127, 3)
-    Dataset: /data/demo_0/next_obs/robot0_eye_in_hand_image    shape: (127, 84, 84, 3)
-    Dataset: /data/demo_0/next_obs/robot0_gripper_qpos    shape: (127, 2)
-    Dataset: /data/demo_0/next_obs/robot0_gripper_qvel    shape: (127, 2)
-    Dataset: /data/demo_0/next_obs/robot0_joint_pos    shape: (127, 7)
-    Dataset: /data/demo_0/next_obs/robot0_joint_pos_cos    shape: (127, 7)
-    Dataset: /data/demo_0/next_obs/robot0_joint_pos_sin    shape: (127, 7)
-    Dataset: /data/demo_0/next_obs/robot0_joint_vel    shape: (127, 7)
-  Group: /data/demo_0/obs
-    Dataset: /data/demo_0/obs/agentview_image    shape: (127, 84, 84, 3)
-    Dataset: /data/demo_0/obs/object    shape: (127, 14)
-    Dataset: /data/demo_0/obs/robot0_eef_pos    shape: (127, 3)
-    Dataset: /data/demo_0/obs/robot0_eef_quat    shape: (127, 4)
-    Dataset: /data/demo_0/obs/robot0_eef_vel_ang    shape: (127, 3)
-    Dataset: /data/demo_0/obs/robot0_eef_vel_lin    shape: (127, 3)
-    Dataset: /data/demo_0/obs/robot0_eye_in_hand_image    shape: (127, 84, 84, 3)
-    Dataset: /data/demo_0/obs/robot0_gripper_qpos    shape: (127, 2)
-    Dataset: /data/demo_0/obs/robot0_gripper_qvel    shape: (127, 2)
-    Dataset: /data/demo_0/obs/robot0_joint_pos    shape: (127, 7)
-    Dataset: /data/demo_0/obs/robot0_joint_pos_cos    shape: (127, 7)
-    Dataset: /data/demo_0/obs/robot0_joint_pos_sin    shape: (127, 7)
-    Dataset: /data/demo_0/obs/robot0_joint_vel    shape: (127, 7)
+```
+.demo
+├── actions	shape: (episode length, 7)
+├── dones	shape: (episode length,)
+├── rewards	shape: (episode length,)
+├── states	shape: (episode length, 45)
+├── obs
+	├── agentview_image				shape: (episode length, 84, 84, 3)
+	├── robot0_eye_in_hand_image	shape: (episode length, 84, 84, 3)
+	├── robot0_eef_pos				shape: (episode length, 3)
+	├── robot0_eef_quat 			shape: (episode length, 4)
+	├── robot0_eef_vel_ang			shape: (episode length, 3)
+	├── robot0_eef_vel_lin			shape: (episode length, 3)
+	├── robot0_gripper_qpos			shape: (episode length, 2)
+	├── robot0_gripper_qvel			shape: (episode length, 2)
+	├── robot0_joint_pos    		shape: (episode length, 7)
+	├── robot0_joint_pos_cos    	shape: (episode length, 7)
+	├── robot0_joint_pos_sin    	shape: (episode length, 7)
+	├── robot0_joint_vel    		shape: (episode length, 7)
+	└── object    					shape: (episode length, 14)
+├── next_obs
+	├── agentview_image				shape: (episode length, 84, 84, 3)
+	├── robot0_eye_in_hand_image	shape: (episode length, 84, 84, 3)
+	├── robot0_eef_pos				shape: (episode length, 3)
+	├── robot0_eef_quat 			shape: (episode length, 4)
+	├── robot0_eef_vel_ang			shape: (episode length, 3)
+	├── robot0_eef_vel_lin			shape: (episode length, 3)
+	├── robot0_gripper_qpos			shape: (episode length, 2)
+	├── robot0_gripper_qvel			shape: (episode length, 2)
+	├── robot0_joint_pos    		shape: (episode length, 7)
+	├── robot0_joint_pos_cos    	shape: (episode length, 7)
+	├── robot0_joint_pos_sin    	shape: (episode length, 7)
+	├── robot0_joint_vel    		shape: (episode length, 7)
+	└── object    					shape: (episode length, 14)
 ```
 
-### <span id="obs shape">observation</span>
+### <span id="obs shape">observation we use in training</span>
 
-Here observation includes an agent view image, a robot image from its hand, end effector's positions and quaternion, and robot gripper positions. 
+Here observation includes an agent view image, a robot image from its hand, end effector's positions and quaternion, and robot gripper positions. The default type of observations is low dimension. The type of data would affect its network structure which will process the data itself later.
 
-```yaml
+```
 agentview_image:
   shape: [3, 84, 84]
   type: rgb
@@ -55,7 +55,6 @@ robot0_eye_in_hand_image:
   type: rgb
 robot0_eef_pos:
   shape: [3]
-  # type default: low_dim
 robot0_eef_quat:
   shape: [4]
 robot0_gripper_qpos:
@@ -289,48 +288,39 @@ obs:
 
 ### <span id="pre-process">Pre-Process</span>
 
-**INPUTS**
-
-- timesteps
-  - definition: diffusion step
-  - shape: [1]
-  - type: tensor
-- actions
-  - definition: original action sequence
-  - shape: [batch_size, horizon, 7]
-  - type: tensor
-
-**OUTPUT**
-
-- <span id="expanded ts">expanded timesteps</span>
-  - definition: unified in dimension timestep
-  - shape: [batch_size]
-  - type: tensor
-- <span id="noised action">noised actions</span>:
-  - definition: actions with random noise
-  - shape: [batch_size, horizon, 7]
-  - type: tensor
+|         |                name & shape                |                          definition                          |
+| :-----: | :----------------------------------------: | :----------------------------------------------------------: |
+| INPUTS  |              timesteps \| [1]              | diffusion step, an integer randomly chosen from [0, num_train_timesteps] |
+|         |    actions \| [batch_size, horizon, 7]     |                   original action sequence                   |
+| OUTPUTS |     expanded timesteps \| [batch_size]     |                unified in dimension timesteps                |
+|         | noised actions \| [batch_size, horizon, 7] |         actions with noise from normal distribution          |
 
 **Details**
 
 The pre-processing includes normalization, expanding timesteps in dimension and adding noise into actions. `num_train_timesteps` here is a hyperparameter.
 
-**Add Noise**
+> **Add Noise Algorithm**
+>
+> $x_t=\sqrt{\overline{\alpha_t}}x_0+\sqrt{1-\overline{\alpha_t}}\epsilon$
+>
+> $x_0$ is the original sample, $\epsilon$ is the noise from normal distribution. $\beta_t $ is the forward process variances of timestep $t$. And it has $\alpha_t=1-\beta_t$. So the add_noise function can be displayed below.
+>
+> ```python
+> def add_noise(original_samples, noise, timesteps):
+>     sqrt_alpha_prod = alphas_cumprod[timesteps] ** 0.5
+>     sqrt_one_minus_alpha_prod = (1 - alphas_cumprod[timesteps]) ** 0.5
+>     
+>     noise_samples = sqrt_alpha_prod * original_samples + sqrt_one_minus_alpha_prod * noise
+>     return noise_samples
+> ```
+>
 
-$x_t=\sqrt{\overline{\alpha_t}}x_0+\sqrt{1-\overline{\alpha_t}}\epsilon$
+This pre-processing has the following steps shown in below code.
 
-$x_0$ is the original sample, $\epsilon$ is the noise. $\beta_t $ is the forward process variances of timestep $t$. And it has $\alpha_t=1-\beta_t$. So the add_noise function can be displayed below.
-
-```python
-def add_noise(original_samples, noise, timesteps):
-    sqrt_alpha_prod = alphas_cumprod[timesteps] ** 0.5
-    sqrt_one_minus_alpha_prod = (1 - alphas_cumprod[timesteps]) ** 0.5
-    
-    noise_samples = sqrt_alpha_prod * original_samples + sqrt_one_minus_alpha_prod * noise
-    return noise_samples
-```
-
-The adding noise process can be computed through the formula below.
+1. Normalize actions from one batch
+2. Sample noise and timesteps
+3. Expand timesteps in the 1st dimension
+4. Add noise into normalized actions.
 
 ```python
 # diffusion_policy/policy/diffusion_transformer_hybrid_image_policy.py
@@ -364,23 +354,10 @@ class DiffusionTransformerHybridImagePolicy(BaseImagePolicy):
 
 ### <span id="visual encoder">Visual Encoder</span>
 
-**INPUTs**
-
-- obs
-
-  - definition: observations
-
-  - shape: see above
-
-  - type: dict
-
-**OUTPUTs**
-
-- <span id="obs_features">obs_features</span>
-
-  - definition: features extracted from observations
-  - shape: [batch_size, 137]
-  - type: tensor
+|         |           name & shape            |      definition       |
+| :-----: | :-------------------------------: | :-------------------: |
+| INPUTS  |         obs \| see above          | original observations |
+| OUTPUTS | obs_features \| [batch_size, 137] | observation features  |
 
 <div align="center">
     <figure id="visual_image">
@@ -456,31 +433,14 @@ class ObservationEncoder(nn.Module):
         return torch.cat(feats, dim=-1)
 ```
 
-### Transformer 
+### Transformer
 
-**INPUTs**
-
-- noised_trajectory
-  - definition: noised actions from <a href="#noised action">outputs</a> of Pre-Processing
-  - shape: [batch_size, horizon, 7]
-  - type: tensor
-
-- obs_features
-  - definition: observation features from <a href="#obs_features">outputs</a> of Visual Encoder
-  - shape: [batch_size, 137]
-  - type: tensor
-- timesteps
-  - definition: unified in dimension timestep from <a href="#expanded ts">outputs</a> of Pre-Processing
-  - shape: [batch_size]
-  - type: tensor
-
-
-**OUTPUT**
-
-- pred_noise
-  - definition: Expected noise at timestep `timesteps` given `obs`
-  - shape: [batch_size, horizon, 7]
-  - type: tensor
+|         |                 name & shape                  |                          definition                          |
+| :-----: | :-------------------------------------------: | :----------------------------------------------------------: |
+| INPUTS  | noised_trajectory \| [batch_size, horizon, 7] | noised actions from <a href="#noised action">outputs</a> of Pre-Processing |
+|         |       obs_features \| [batch_size, 137]       | observation features from <a href="#obs_features">outputs</a> of Visual Encoder |
+|         |           timesteps \| [batch_size]           | unified in dimension timesteps from <a href="#expanded ts">outputs</a> of Pre-Processin |
+| OUTPUTS |    pred_noise \| [batch_size, horizon, 7]     |          expected noise at `timesteps` given `obs`           |
 
 <div align="center">
     <figure>
@@ -582,7 +542,9 @@ class TransformerForDiffusion(ModuleAttrMixin):
 
 ## Training
 
-The training procedures are described in above images.
+<div align="center">
+    <img src="assets/image-20230831131340802.png" />
+</div>
 
 The training loss is below, the goal is to train a policy $\epsilon_{\theta}$ to predict noise accurately:
 
@@ -849,6 +811,10 @@ class TrainDiffusionTransformerHybridWorkspace(BaseWorkspace):
 
 
 ## Inference
+
+<div align="center">
+    <img src="assets/image-20230831135218882.png" />
+</div>
 
 After we got a trained policy $\epsilon_{\theta}$. We use the following formula to inference.
 
