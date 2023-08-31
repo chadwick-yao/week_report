@@ -169,6 +169,8 @@ checkpoint:
 <div align="center">
     <img src="assets/image-20230825173811939.png" />
 </div>
+
+
 |        |               name & shape               |                   definition                   |
 | :----: | :--------------------------------------: | :--------------------------------------------: |
 | Input  |   actions \| [batch_size, horizon, 7]    |          sequence of original actions          |
