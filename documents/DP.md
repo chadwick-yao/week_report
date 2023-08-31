@@ -64,7 +64,8 @@ The default type of observations is low dimension. The type of data would affect
         <img align="center" src="DP/network_structure.png" alt="Network Structure" />
     </figure>
 </div>
-The noise prediction network $\epsilon_\theta(O_t, A_t^k, k)$ mainly includes 3 components: <a href="#pre-process">Pre-Process</a>, <a href="#visual encoder">Visual Encoder</a> and <a href="#transformer">Transformer</a>.
+
+The noise prediction network $\epsilon_{\theta}(O_t, A_t^k, k)$ mainly includes 3 components: <a href="#pre-process">Pre-Process</a>, <a href="#visual encoder">Visual Encoder</a> and <a href="#transformer">Transformer</a>.
 
 **Input**
 
