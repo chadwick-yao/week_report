@@ -66,15 +66,22 @@ The default type of observations is low dimension. The type of data would affect
 </div>
 
 The noise prediction network $\epsilon_\theta(O_t, A_t^k, k)$ mainly includes 3 components: <a href="#pre-process">Pre-Process</a>, <a href="#visual encoder">Visual Encoder</a> and <a href="#transformer">Transformer</a>.
+The noise prediction network $\epsilon_\theta(O_t, A_t^k, k)$ mainly includes 3 components: <a href="#pre-process">Pre-Process</a>, <a href="#visual encoder">Visual Encoder</a> and <a href="#transformer">Transformer</a>.
 
+**Input**
 **Input**
 
 - timesteps: diffusion step (1)
 - actions: action sequence (batch_size, horizon, 7)
 - obs: observations
+- timesteps: diffusion step (1)
+- actions: action sequence (batch_size, horizon, 7)
+- obs: observations
 
 **Output**
+**Output**
 
+- pred_noise: predicted noise $\epsilon_\theta(O_t, A_t^k, k)$ (batch_size, horizon, 7)
 - pred_noise: predicted noise $\epsilon_\theta(O_t, A_t^k, k)$ (batch_size, horizon, 7)
 
 ### <span id="pre-process">Pre-Process</span>
