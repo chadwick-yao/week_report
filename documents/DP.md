@@ -658,12 +658,11 @@ optimizer:
 | learning_rate            | learning rate                                            | 1.0e-4      |
 | betas                    | decay rate of first-order moment and second-order moment | [0.9, 0.95] |
 
-```yaml
+```
 policy: # policy configuration
 	_target_: DiffusionTransformerHybridImagePolicy # policy type
-	
 	shape_meta: # observations and actions specification
-        obs:
+	obs:
             agentview_image:
                 shape: [3, 84, 84]
                 type: rgb
@@ -678,7 +677,7 @@ policy: # policy configuration
             robot0_gripper_qpos:
                 shape: [2]
         action: 
-			shape: [7]
+		shape: [7]
     
     noise_scheduler: # DDPM algorithm's hyperparameters
     	_target: DDPMScheduler	# algorithm type
