@@ -44,8 +44,8 @@ This section shows the whole dataset structure of every demonstration. It saves 
 
 ### <span id="obs shape">Observation</span>
 
-- Image of the top-down camera (84, 84, 3), rgb
-- Image of the wrist camera (84, 84, 3), rgb
+- Image of the top-down camera [84, 84, 3], rgb
+- Image of the wrist camera [84, 84, 3], rgb
 - End effector's position and orientation (3, 4), low_dim
 - Gripper's position (2), low_dim
 
