@@ -49,13 +49,13 @@ This section shows the whole dataset structure of every demonstration. It saves 
 - End effector's position and orientation [7], low_dim
 - Gripper's position [2], low_dim
 
-The default type of observations is low dimension. The type of data would affect its network structure which will process the data itself later.
+The default type of observation is low dimension. 
 
 ### Action
 
-- Desired translation of EEF (3)
-- Desired rotation change from current EEF (3)
-- Opening or closing of the gripper fingers (1)
+- Desired translation of EEF [3]
+- Desired rotation change from current EEF [3]
+- Opening or closing of the gripper fingers [1]
 
 ## Network Structure
 
@@ -69,8 +69,8 @@ The noise prediction network $\epsilon_{\theta}(O_t, A_t^k, k)$ mainly includes 
 
 **Input**
 
-- timesteps: diffusion step (1)
-- actions: action sequence (batch_size, horizon, 7)
+- timesteps: diffusion step [1]
+- actions: action sequence [batch_size, horizon, 7]
 - obs: observations
 
 **Output**
@@ -81,12 +81,17 @@ The noise prediction network $\epsilon_{\theta}(O_t, A_t^k, k)$ mainly includes 
 
 |         |                name & shape                |                          definition                          |
 | :-----: | :----------------------------------------: | :----------------------------------------------------------: |
-| Input  |              timesteps \| [1]              | diffusion step, an integer randomly chosen from [0, num_train_timesteps] |
-|         |    actions \| [batch_size, horizon, 7]     |                   original action sequence                   |
-| Output |     expanded timesteps \| [batch_size]     |                unified in dimension timesteps                |
-|         | noised actions \| [batch_size, horizon, 7] |         actions with noise from normal distribution          |
+| Input  |              timesteps [1]              | diffusion step, an integer randomly chosen from [0, num_train_timesteps] |
+|         |    actions [batch_size, horizon, 7]     |                   original action sequence                   |
+| Output |     expanded timesteps [batch_size]     |                unified in dimension timesteps                |
+|         | noised actions [batch_size, horizon, 7] |         actions with noise from normal distribution          |
 
-**Details**
+
+**Procedure:**
+1. Normalize actions from one batch
+2. Sample noise and timesteps
+3. Expand timesteps in the 1st dimension
+4. Add noise into normalized actions.
 
 The pre-processing includes normalization, expanding timesteps in dimension and adding noise into actions. `num_train_timesteps` here is a hyperparameter.
 
@@ -106,12 +111,6 @@ The pre-processing includes normalization, expanding timesteps in dimension and 
 > ```
 >
 
-This pre-processing has the following steps shown in below code.
-
-1. Normalize actions from one batch
-2. Sample noise and timesteps
-3. Expand timesteps in the 1st dimension
-4. Add noise into normalized actions.
 
 ```python
 # diffusion_policy/policy/diffusion_transformer_hybrid_image_policy.py
