@@ -61,93 +61,28 @@ The default type of observation is low dimension.
 
 <div align="center">
     <figure id="network structure">
-        <img align="center" src="DP/network_structure.png" alt="Network Structure" />
+        <img align="center" src="assets/net_structure.png" alt="Network Structure" />
     </figure>
 </div>
 
-The noise prediction network $\epsilon_{\theta}(O_t, A_t^k, k)$ mainly includes 3 components: <a href="#pre-process">Pre-Process</a>, <a href="#visual encoder">Visual Encoder</a> and <a href="#transformer">Transformer</a>.
+The noise prediction network $\epsilon_{\theta}(O_t, A_t^k, k)$ mainly includes 2 components: <a href="#visual encoder">Visual Encoder</a> and <a href="#transformer">Transformer</a>.
+
+1. Extract features from observations through Visual Encoder.
+2. Predict noise based on noised action sequence constrained by visual information through Transformer.
 
 **Input**
 
 - timesteps: diffusion step [1]
-- actions: action sequence [batch_size, horizon, 7]
+- noised actions: noised action sequence [batch_size, horizon, 7]
 - obs: observations
 
 **Output**
 
-- pred_noise: predicted noise $\epsilon_{\theta}(O_t, A_t^k, k)$ (batch_size, horizon, 7)
-
-### <span id="pre-process">Pre-Process</span>
-
-|         |                name & shape                |                          definition                          |
-| :-----: | :----------------------------------------: | :----------------------------------------------------------: |
-| Input  |              timesteps [1]              | diffusion step, an integer randomly chosen from [0, num_train_timesteps] |
-|         |    actions [batch_size, horizon, 7]     |                   original action sequence                   |
-| Output |     expanded timesteps [batch_size]     |                unified in dimension timesteps                |
-|         | noised actions [batch_size, horizon, 7] |         actions with noise from normal distribution          |
+- pred_noise: predicted noise $\epsilon_{\theta}(O_t, A_t^k, k)$ [batch_size, horizon, 7]
 
 
-**Procedure:**
-1. Normalize actions from one batch
-2. Sample noise and timesteps
-3. Expand timesteps in the 1st dimension
-4. Add noise into normalized actions.
-
-The pre-processing includes normalization, expanding timesteps in dimension and adding noise into actions. `num_train_timesteps` here is a hyperparameter.
-
-> **Add Noise Algorithm**
->
-> $x_t=\sqrt{\overline{\alpha_t}}x_0+\sqrt{1-\overline{\alpha_t}}\epsilon$
->
-> $x_0$ is the original sample, $\epsilon$ is the noise from normal distribution. $\beta_t $ is the forward process variances of timestep $t$. And it has $\alpha_t=1-\beta_t$. So the add_noise function can be displayed below.
->
-> ```python
-> def add_noise(original_samples, noise, timesteps):
->     sqrt_alpha_prod = alphas_cumprod[timesteps] ** 0.5
->     sqrt_one_minus_alpha_prod = (1 - alphas_cumprod[timesteps]) ** 0.5
->     
->     noise_samples = sqrt_alpha_prod * original_samples + sqrt_one_minus_alpha_prod * noise
->     return noise_samples
-> ```
->
-
-
-```python
-# diffusion_policy/policy/diffusion_transformer_hybrid_image_policy.py
-class DiffusionTransformerHybridImagePolicy(BaseImagePolicy):
-    # ......
-    def compute_loss(self, batch):
-        # normalize input
-        assert 'valid_mask' not in batch
-		# ......
-        nactions = self.normalizer['action'].normalize(batch['action'])
-        batch_size = nactions.shape[0]
-        horizon = nactions.shape[1]
-        
-		# ......
-
-        # Sample noise that we'll add to the images
-        noise = torch.randn(trajectory.shape, device=trajectory.device)
-        bsz = trajectory.shape[0]
-        # Sample a random timestep for each image
-        timesteps = torch.randint(
-            0, self.noise_scheduler.config.num_train_timesteps, 
-            (bsz,), device=trajectory.device
-        ).long()
-        # Add noise to the clean images according to the noise magnitude at each timestep
-        # (this is the forward diffusion process)
-        noisy_trajectory = self.noise_scheduler.add_noise(
-            trajectory, noise, timesteps)
-        # ......
-	# ......
-```
 
 ### <span id="visual encoder">Visual Encoder</span>
-
-|         |           name & shape            |      definition       |
-| :-----: | :-------------------------------: | :-------------------: |
-| Input  |         obs \| see above          | original observations |
-| Output | obs_features \| [batch_size, 137] | observation features  |
 
 <div align="center">
     <figure id="visual_image">
@@ -155,11 +90,20 @@ class DiffusionTransformerHybridImagePolicy(BaseImagePolicy):
         <figcaption>Visual Encoder</figcaption>
     </figure>
 </div>
+**Input**
 
+- obs: observations
 
-As shown in the picture, for the specific tasks (square and can), the `obs` modality only has 2 types, i.e. rgb and low_dim. For the rgb type, like `agentview_image` and `robot0_eye_in_hand_image`, its network is assigned a ResNet18 network. However, as for low_dim type, it would not be assigned any network, which means that the low_dim type observations would not change at all even though they are processed by Visual Encoder.
+**Output**
 
-Here is one table to describe the details of these different networks. `CropRondomizer` is designed to crop the original into preset shape (here is [76, 76]). And the Visual Encoder output can be obtained through concatenating all the output of multiple networks, i.e. [batch_size, 64+64+3+4+2] -> [batch_size, 137]
+- obs_features: observation features[batch_size, 137]
+
+**Networks and Modalities**
+
+- For `RGB` modality observation, it utilize ResNet18 for processing
+- For `LOW DIM` modality observation, it does not utilize any network.
+
+Here is one table to describe the details of these different networks. And the Visual Encoder output can be obtained through concatenating all the output of multiple networks, i.e. [batch_size, 64+64+3+4+2] -> [batch_size, 137].
 
 | Name\|shape\|type                          | Randomizer     | Network\|IPT\|OPT           |
 | ------------------------------------------ | -------------- | --------------------------- |
@@ -168,8 +112,6 @@ Here is one table to describe the details of these different networks. `CropRond
 | robot0_eef_pos\|[3]\|low_dim               | None           | None\|[3]\|[3]              |
 | robot0_eef_quat\|[4]\|low_dim              | None           | None\|[4]\|[4]              |
 | robot0_gripper_qpos\|[2]\|low_dim          | None           | None\|[2]\|[2]              |
-
-The Visual Encoder is not pre-trained model, it will be train with transformer at the same time.
 
 **Visual Encoder Forward Details**
 
@@ -225,19 +167,23 @@ class ObservationEncoder(nn.Module):
 
 ### Transformer
 
-|         |                 name & shape                  |                          definition                          |
-| :-----: | :-------------------------------------------: | :----------------------------------------------------------: |
-| Input  | noised_trajectory \| [batch_size, horizon, 7] | noised actions from <a href="#noised action">outputs</a> of Pre-Processing |
-|         |       obs_features \| [batch_size, 137]       | observation features from <a href="#obs_features">outputs</a> of Visual Encoder |
-|         |           timesteps \| [batch_size]           | unified in dimension timesteps from <a href="#expanded ts">outputs</a> of Pre-Processin |
-| Output |    pred_noise \| [batch_size, horizon, 7]     |          expected noise at `timesteps` given `obs`           |
-
 <div align="center">
     <figure>
     	<img align="center" src="DP/image_1.png" />
         <figcaption>Transformer Network</figcaption>
     </figure>
 </div>
+**Input**
+
+- noised_trajectory: noised action from pre-processing outputs [batch_size, horizon, 7]
+- obs_features: observation features from Visual Encoder [batch_size, 137]
+- timesteps: unified in dimension timesteps from pre-processing outputs [batch_size]
+
+**Output**
+
+- pred_noise: expected noise at `timestep` given `obs` [batch_size, horizon, 7]
+
+
 
 `Encoder` is designed to  encode observation features and timesteps. `n_cond_layers` is a hyperparameter that can be set in configuration files, and if it’s > 0, the transformer encoder will replace MLP encoder. 
 
@@ -336,7 +282,44 @@ class TransformerForDiffusion(ModuleAttrMixin):
     <img src="assets/image-20230831131340802.png" />
 </div>
 
-The training loss is below, the goal is to train a policy $\epsilon_{\theta}$ to predict noise accurately:
+### <span id="pre-process">Pre-Process</span>
+
+**Input**
+
+- timesteps: diffusion step [1]
+- actions: original action sequence [batch_size, horizon, 7]
+
+**Output**
+
+- expanded timesteps: unified in dimension timesteps [batch_size]
+- noised actions: actions with noise from normal distribution [batch_size, horizon, 7]
+
+
+**Procedure:**
+
+1. Normalize actions from one batch
+2. Sample noise and timesteps
+3. Expand timesteps in the 1st dimension
+4. Add noise into normalized actions.
+
+The pre-processing includes normalization, expanding timesteps in dimension and adding noise into actions. `num_train_timesteps` here is a hyperparameter.
+
+> **Add Noise Algorithm**
+>
+> $x_t=\sqrt{\overline{\alpha_t}}x_0+\sqrt{1-\overline{\alpha_t}}\epsilon$
+>
+> $x_0$ is the original sample, $\epsilon$ is the noise from normal distribution. $\beta_t $ is the forward process variances of timestep $t$. And it has $\alpha_t=1-\beta_t$. So the add_noise function can be displayed below.
+>
+> ```python
+> def add_noise(original_samples, noise, timesteps):
+>  sqrt_alpha_prod = alphas_cumprod[timesteps] ** 0.5
+>  sqrt_one_minus_alpha_prod = (1 - alphas_cumprod[timesteps]) ** 0.5
+> 
+>  noise_samples = sqrt_alpha_prod * original_samples + sqrt_one_minus_alpha_prod * noise
+>  return noise_samples
+> ```
+
+### Loss Computing
 
 $Loss = MSE(\epsilon^k, \epsilon_{\theta}(O_t, A_t^0+\epsilon^k,k))$
 
