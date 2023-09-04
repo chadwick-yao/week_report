@@ -147,14 +147,14 @@ class DiffusionTransformerHybridImagePolicy(BaseImagePolicy):
 |         |           name & shape            |      definition       |
 | :-----: | :-------------------------------: | :-------------------: |
 | Input  |         obs \| see above          | original observations |
-| Output | obs_features \| [batch_size, 137] | observation features  |
+| Output | obs_features \| [batch_size, To, 137] | observation features  |
 
 <div align="center">
     <figure id="visual_image">
         <img align="center" src="DP/visual.png" />
-        <figcaption>Visual Encoder</figcaption>
     </figure>
 </div>
+
 
 
 As shown in the picture, for the specific tasks (square and can), the `obs` modality only has 2 types, i.e. rgb and low_dim. For the rgb type, like `agentview_image` and `robot0_eye_in_hand_image`, its network is assigned a ResNet18 network. However, as for low_dim type, it would not be assigned any network, which means that the low_dim type observations would not change at all even though they are processed by Visual Encoder.
@@ -238,7 +238,6 @@ class ObservationEncoder(nn.Module):
         <figcaption>Transformer Network</figcaption>
     </figure>
 </div>
-
 `Encoder` is designed to  encode observation features and timesteps. `n_cond_layers` is a hyperparameter that can be set in configuration files, and if it’s > 0, the transformer encoder will replace MLP encoder. 
 
 `Decoder` takes in noised actions and encoded information, then predicts a noise with the same shape of sample as output.
