@@ -85,21 +85,37 @@ $$MSE = \frac{1}{k*N}\sum^N {\sum_{i=1}^k (y_i - \hat{y}_i)^2}$$
 </div>
 
 > **Algorithm:** BeT Training
+>
 > **Data:** Demo dadtaset $D$, horizon $T$, observation horizon $T_o$.
+>
 > Let $O_t,A_t$ represent action and observation at time step t;
+>
 > Initialize Visual Encoder $vis_{\phi}$;
+>
 > Initialize MinGPT $MinGPT_{\theta}$;
+>
 > Initialize K-Means Encoder $K\_Encoder$;
+>
 > **for** $interation n=1,2,\dots$ **do**
-> 	obs_fea = $vis_{\phi}(O_{t:t+T_o})$;
-> 	offset_head, binning_head = $MinGPT_{\theta}(obs\_fea)$;
-> 	**for** action **in** $A_{t:t+T}$ **do**
-> 		target_bin, target_offset = $K\_Encoder(action)$;
-> 		class_loss += Focal_Loss(target_bin, binning_head);
-> 		offset_loss += MSE(offset_head[target_bin], target_offset);
-> 		loss += class_loss + loss_scale * offset_loss;
-> 	**end**
-> 	Update $\phi,\theta$ with loss;
+>
+> ​	obs_fea = $vis_{\phi}(O_{t:t+T_o})$;
+>
+> ​	offset_head, binning_head = $MinGPT_{\theta}(obs\_fea)$;
+>
+> ​	**for** action **in** $A_{t:t+T}$ **do**
+>
+> ​		target_bin, target_offset = $K\_Encoder(action)$;
+>
+> ​		class_loss += Focal_Loss(target_bin, binning_head);
+>
+> ​		offset_loss += MSE(offset_head[target_bin], target_offset);
+>
+> ​		loss += class_loss + loss_scale * offset_loss;
+>
+> ​	**end**
+>
+> ​	Update $\phi,\theta$ with loss;
+>
 > **end**
 
 
@@ -207,20 +223,35 @@ Procedures:
     <img src="assets/image-20230904194954838.png" />
 </div>
 > **Algorithm:** BeT Inference
+>
 > **Data:** Pretrained  $vis_{\phi}$ and $MinGPT_{\theta}$, episode length $L$.
+>
 > **for** $iteration t=1,2,\dots, L$ **do**
-> 	Sample $O_{t:t+T_o}$ from environment;
-> 	$obs_fea=vis_{\phi}(O_{t:t+T_o})$;
-> 	offset_head, binning_head = $MinGPT(obs_fea)$;
-> 	**for** prob **in** binning_head, offset **in** offset_head **do**
-> 		bin = torch.multinomial(prob);
-> 		sample_offset = offset[bin]
-> 		action = K_Decoder(prob, sample_offset);
-> 		Apply action;
-> 	**end**
-> 	**if** task is done **then**
-> 		break;
-> 	**end**
+>
+> ​	Sample $O_{t:t+T_o}$ from environment;
+>
+> ​	$obs_fea=vis_{\phi}(O_{t:t+T_o})$;
+>
+> ​	offset_head, binning_head = $MinGPT(obs_fea)$;
+>
+> ​	**for** prob **in** binning_head, offset **in** offset_head **do**
+>
+> ​		bin = torch.multinomial(prob);
+>
+> ​		sample_offset = offset[bin]
+>
+> ​		action = K_Decoder(prob, sample_offset);
+>
+> ​		Apply action;
+>
+> ​	**end**
+>
+> ​	**if** task is done **then**
+>
+> ​		break;
+>
+> ​	**end**
+>
 > **end**
 
 
