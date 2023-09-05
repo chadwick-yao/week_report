@@ -23,6 +23,9 @@ Output:
 - categorical action bin: a k-length probability array corresponding k action centers [1, k]
 - action offset: action offset from its corresponding action center [1, act_dim]
 
+1. Calculate the closest bin for every single action.
+2. Obtain offsets by `input_action - bin_action`
+
 **K-Means Decoder**
 
 Input:
@@ -33,6 +36,9 @@ Input:
 Output:
 
 - action: an action at a specific timestep [1, act_dim]
+
+1. Get action bin with categorical action bin
+2. Get action by `offset + bin_action`
 
 ## Training
 
@@ -64,7 +70,7 @@ Under the above two module processing the input data, we get `binning head`, `of
 
 **Focal Loss**
 
-$FL(y, p) = -\sum^{N}{\sum_{i=1}^k y_i (1-p_i)^\gamma \log p_i}$
+$$FL(y, p) = -\sum^{N}{\sum_{i=1}^k y_i (1-p_i)^\gamma \log p_i}$$
 
 $y_i$ here denotes ground truth action bin at index i. $p_i$ denotes binning head at index i. N denotes batch size. $\gamma$ is a preset hyperparameter.
 
@@ -72,7 +78,7 @@ $y_i$ here denotes ground truth action bin at index i. $p_i$ denotes binning hea
 
 In order to get the ground truth class offset in the top-right corner, we use `ground truth action bin` as index to select the corresponding offsets, i.e. ground truth class offset.
 
-$MSE = \frac{1}{k*N}\sum^N {\sum_{i=1}^k (y_i - \hat{y}_i)^2}$
+$$MSE = \frac{1}{k*N}\sum^N {\sum_{i=1}^k (y_i - \hat{y}_i)^2}$$
 
 <div align='center'>
     <img src="assets/image-20230904193847880.png" />
