@@ -233,3 +233,7 @@ def predict_action(self, obs_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.T
     return result
 ```
 
+<div align='center'>
+    <img src="assets/image-20230904200031816.png" />
+</div>
+
