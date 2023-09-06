@@ -42,6 +42,23 @@ Output:
 
 ## Training
 
+### Data
+
+#### <span id="obs shape">Observation</span>
+
+- Image of the top-down camera [84, 84, 3], rgb
+- Image of the wrist camera [84, 84, 3], rgb
+- End effector's position and orientation [7], low_dim
+- Gripper's position [2], low_dim
+
+The default type of observation is low dimension. 
+
+#### Action
+
+- Desired translation of EEF [3]
+- Desired rotation change from current EEF [3]
+- Opening or closing of the gripper fingers [1]
+
 <div align='center'>
     <img src="assets/image-20230904150652837.png" />
 </div>
@@ -80,9 +97,8 @@ In order to get the ground truth class offset in the top-right corner, we use `g
 
 $$MSE = \frac{1}{k*N}\sum^N {\sum_{i=1}^k (y_i - \hat{y}_i)^2}$$
 
-<div align='center'>
-    <img src="assets/image-20230904193847880.png" />
-</div>
+
+
 
 > **Algorithm:** BeT Training
 >
@@ -219,22 +235,21 @@ Procedures:
 4. Use the index to sample action offset.
 5. Generate action based on sampled bin and sample offset with K-Means Decoder.
 
-<div align="center">
-    <img src="assets/image-20230904194954838.png" />
-</div>
+
+
 > **Algorithm:** BeT Inference
 >
-> **Data:** Pretrained  $vis_{\phi}$ and $MinGPT_{\theta}$, episode length $L$.
+> **Data:** Pretrained  $vis_{\phi}$ and $MinGPT_{\theta}$, episode length $L$,  action horizon $T_{a}$.
 >
 > **for** $iteration t=1,2,\dots, L$ **do**
 >
 > ​	Sample $O_{t:t+T_o}$ from environment;
 >
-> ​	$obs_fea=vis_{\phi}(O_{t:t+T_o})$;
+> ​	$obs\_fea=vis_{\phi}(O_{t:t+T_o})$;
 >
-> ​	offset_head, binning_head = $MinGPT(obs_fea)$;
+> ​	offset_head, binning_head = $MinGPT(obs\_fea)$; # sequence length is $T_{a}$, original code defaults length is 1, specifically the last one of predict sequence
 >
-> ​	**for** prob **in** binning_head, offset **in** offset_head **do**
+> ​	**for** prob **in** binning_head, offs2qet **in** offset_head **do**
 >
 > ​		bin = torch.multinomial(prob);
 >
