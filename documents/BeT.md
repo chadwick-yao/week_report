@@ -23,6 +23,9 @@ Output:
 - categorical action bin: a k-length probability array corresponding k action centers [1, k]
 - action offset: action offset from its corresponding action center [1, act_dim]
 
+1. Calculate the closest bin for every single action.
+2. Obtain offsets by `input_action - bin_action`
+
 **K-Means Decoder**
 
 Input:
@@ -33,6 +36,9 @@ Input:
 Output:
 
 - action: an action at a specific timestep [1, act_dim]
+
+1. Get action bin with categorical action bin
+2. Get action by `offset + bin_action`
 
 ## Training
 
@@ -64,7 +70,7 @@ Under the above two module processing the input data, we get `binning head`, `of
 
 **Focal Loss**
 
-$FL(y, p) = -\sum^{N}{\sum_{i=1}^k y_i (1-p_i)^\gamma \log p_i}$
+$$FL(y, p) = -\sum^{N}{\sum_{i=1}^k y_i (1-p_i)^\gamma \log p_i}$$
 
 $y_i$ here denotes ground truth action bin at index i. $p_i$ denotes binning head at index i. N denotes batch size. $\gamma$ is a preset hyperparameter.
 
@@ -72,11 +78,46 @@ $y_i$ here denotes ground truth action bin at index i. $p_i$ denotes binning hea
 
 In order to get the ground truth class offset in the top-right corner, we use `ground truth action bin` as index to select the corresponding offsets, i.e. ground truth class offset.
 
-$MSE = \frac{1}{k*N}\sum^N {\sum_{i=1}^k (y_i - \hat{y}_i)^2}$
+$$MSE = \frac{1}{k*N}\sum^N {\sum_{i=1}^k (y_i - \hat{y}_i)^2}$$
 
 <div align='center'>
     <img src="assets/image-20230904193847880.png" />
 </div>
+
+> **Algorithm:** BeT Training
+>
+> **Data:** Demo dadtaset $D$, horizon $T$, observation horizon $T_o$.
+>
+> Let $O_t,A_t$ represent action and observation at time step t;
+>
+> Initialize Visual Encoder $vis_{\phi}$;
+>
+> Initialize MinGPT $MinGPT_{\theta}$;
+>
+> Initialize K-Means Encoder $K\_Encoder$;
+>
+> **for** $interation n=1,2,\dots$ **do**
+>
+> ​	obs_fea = $vis_{\phi}(O_{t:t+T_o})$;
+>
+> ​	offset_head, binning_head = $MinGPT_{\theta}(obs\_fea)$;
+>
+> ​	**for** action **in** $A_{t:t+T}$ **do**
+>
+> ​		target_bin, target_offset = $K\_Encoder(action)$;
+>
+> ​		class_loss += Focal_Loss(target_bin, binning_head);
+>
+> ​		offset_loss += MSE(offset_head[target_bin], target_offset);
+>
+> ​		loss += class_loss + loss_scale * offset_loss;
+>
+> ​	**end**
+>
+> ​	Update $\phi,\theta$ with loss;
+>
+> **end**
+
 
 ```python
 # diffusion_policy/model/bet/latent_generators/mingpt.py
@@ -181,6 +222,38 @@ Procedures:
 <div align="center">
     <img src="assets/image-20230904194954838.png" />
 </div>
+> **Algorithm:** BeT Inference
+>
+> **Data:** Pretrained  $vis_{\phi}$ and $MinGPT_{\theta}$, episode length $L$.
+>
+> **for** $iteration t=1,2,\dots, L$ **do**
+>
+> ​	Sample $O_{t:t+T_o}$ from environment;
+>
+> ​	$obs_fea=vis_{\phi}(O_{t:t+T_o})$;
+>
+> ​	offset_head, binning_head = $MinGPT(obs_fea)$;
+>
+> ​	**for** prob **in** binning_head, offset **in** offset_head **do**
+>
+> ​		bin = torch.multinomial(prob);
+>
+> ​		sample_offset = offset[bin]
+>
+> ​		action = K_Decoder(prob, sample_offset);
+>
+> ​		Apply action;
+>
+> ​	**end**
+>
+> ​	**if** task is done **then**
+>
+> ​		break;
+>
+> ​	**end**
+>
+> **end**
+
 
 ```python
 def predict_action(self, obs_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
