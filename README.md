@@ -167,6 +167,20 @@ This week, I put my focus on some comparative experiments, i.e. tasks like CAN, 
 
 :round_pushpin: More exp
 
+## 2023/08/21~2023/09/07
+
+### Summary
+
+This week I finished polishing my documents on IBC, DP and other algorithms. The huge work overwhelmed my, but I succeeded to overcome it. The primary goal of taking down notes of everything I encountered is to elevate my insights of these algorithms, like the algorithm procedures, the implementation and even some fundamental knowledges.
+
+### Challenges
+
+
+
+### Next Week Targets
+
+
+
 - IBC
 
 - [x] Network Image, add action pre-processing module
