@@ -98,9 +98,9 @@ The work I focused on this week is to continue to explore the paper from Stanfor
 
 ​	`pbt`它是pbt算法（Population-Based Training）
 
-​	`	tasks`任务定义，定义observation维度，action维度。它继承vec_task他的任务就是创建仿真环境，其中step很重要，它是在执行action后更新环境的函数，返回obs, rewards, resets(是否完成)，info（超时信息）
+​	`tasks`任务定义，定义observation维度，action维度。它继承vec_task他的任务就是创建仿真环境，其中step很重要，它是在执行action后更新环境的函数，返回obs, rewards, resets(是否完成)，info（超时信息）
 
-​	`	train.py`利用runner进行train or test， 这里只关注players，这里面实现了get_action，使用model得到包括action等信息，players继承player，run函数是核心，在这里是信息agent和env互动的函数，在这里导出整个操作的数据。
+​	`train.py`利用runner进行train or test， 这里只关注players，这里面实现了get_action，使用model得到包括action等信息，players继承player，run函数是核心，在这里是信息agent和env互动的函数，在这里导出整个操作的数据。
 
 ​	buffer这些在执行过程中的一些内容信息，会在task中或者说vec_task的继承中更新。
 
@@ -142,13 +142,62 @@ The work I focused on this week is to continue to explore the paper from Stanfor
 ## 2023/08/10～2023/08/16
 
 Diffusion Policy
-为了简便，将tasks和methods独立进行设计；
 
-### Tasks
-Dataset数据集接口；EnvRunner执行Policy并产生结果；config/task/.yaml这里是配置文件，包含很多参数；Env是基于gym的task environment；
-### Policy
-实现inference部分以及训练部分过程；workspace实现training&evaluation；config/.yaml这个是policy的配置文件；
+## 2023/08/17～2023/08/23
 
-- [ ] <font color='red'>使用ACT跑起来square和can</font>
+Implement ACT in `DP` code frame. 
 
-test实际上是通过env_runner实现的
+## 2023/08/24~2023/08/30
+
+### Summary
+
+This week, I put my focus on some comparative experiments, i.e. tasks like CAN, SQUARE and PUSH-T. Based on the tasks, I trained 3 policies, includes ACT, DP and  IBC. They are all relied on MUJOCO simulation environment. These experiments results can be found <a href="https://github.com/Dominique-Yiu/week_report/blob/master/documents/experiments.md">EXPERIMENTS.MD</a>, and because some tasks are still executing, I will replenish these missing pieces within next few days.
+
+### Challenges
+
+:pushpin: IBC policy has a extreme bad performance when doing the SQUARE task.
+
+:dart: In the DP paper, it described that IBC exactly had a bad performance under SQUARE task scenario. Then, I tried Push-T scenario and got the close success rate as the paper says.
+
+:pushpin: Confusion about how package ROBOMIMIC initializes the environment, such as the initial pose of robot, square nut pose and position, even the table settings.
+
+:dart: <a href="https://github.com/Dominique-Yiu/week_report/blob/master/documents/experiments.md">Details</a>
+
+### Next week targets
+
+:round_pushpin: More exp
+
+## 2023/08/21~2023/09/07
+
+### Summary
+
+This week I finished polishing my documents on IBC, DP and other algorithms. The huge work overwhelmed my, but I succeeded to overcome it. The primary goal of taking down notes of everything I encountered is to elevate my insights of these algorithms, like the algorithm procedures, the implementation and even some fundamental knowledges.
+
+### Challenges
+
+
+
+### Next Week Targets
+
+
+
+- IBC
+
+- [x] Network Image, add action pre-processing module
+- [x] specify the action pre-processing, how it works
+- [x] Formulation display error
+- [x] Visualize the training process, e.g. show a algorithm procedure
+- [x] issues on energy, figure out plz
+
+- DP
+
+- [x] subtitle problem in Network Structure
+- [x] make all arguments correspond to images
+- [x] show a algorithm procedure
+- [x] loss function k definition
+
+- EXP
+
+- [x] put IMG-2 in training
+- [x] add task description 
+

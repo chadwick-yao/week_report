@@ -384,22 +384,41 @@ Two backends are qupported:
 
 Here it uses robomimic package to make an environment(EnvRobosuite) from metadata, and actually it still uses mujoco_py to create its environment.
 
+### How to realize a testing process?
+
+The key is the `env_runner`.
+
+n_train和n_test是需要执行的不同的环境，n_envs是所有要执行的环境，它是n_train和n_test之和的倍数，如果不是会进行Padding. 
+
+有两个env_fn，两者之间唯一的不同就是一个是会create OpenGL context (enable_render=True)另外一个则不会。
+
+对于train它的初始状态是直接从data/demo_x/states中取出来的，但是test是用seed进行重置的
 
 
 
+在run的过程中，有一个global_slice和local_slice其实就是index的两种方式，local是用来render的，ok可以开始写了
 
+怎么才算done？
 
+VectorEnv是env的基类，来自gym，在执行step的时候，实际上使用step_wait，会在集成类进行implement.
 
-**Tasks can be implemented**
+```python
+""" AsyncVectorEnv继承VectorEnv """
+"""
+参数：
+env_fns 一堆构造env的函数
+shared_memory是用来放obs的
+child_pipe接收parent_pipe的info
+实际上执行的还是multistep_wrapper的step
+实际上是gym.Wrapper的step
+实际上是videoRecordingwrapper
+实际上是RobomimicImageWrapper
+实际上是EnvRobosuite
+        # done if number of elapsed timesteps is greater than horizon
+        self.done = (self.timestep >= self.horizon) and not self.ignore_done
+"""
+```
 
-- [x] visual push-t
-- [x] keypoints push-t
+reward如何计算很重要；但是不知道。。。
 
-- [ ] block pushing (no vision) :no_entry_sign:
-
-- [x] kitchen | being training -> mujoco
-- [ ] robomimic (maybe)
-  - [x] Lift
-  - [x] Square
-  - [ ] Can
-- [x] <font color='red'>Do Transformer Exp</font>
+实现test
