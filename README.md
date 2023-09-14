@@ -182,23 +182,4 @@ This week I finished polishing my documents on IBC, DP and other algorithms. The
 
 ## 2023/09/08~2023/09/14
 
-- IBC
-
-- [x] Network Image, add action pre-processing module
-- [x] specify the action pre-processing, how it works
-- [x] Formulation display error
-- [x] Visualize the training process, e.g. show a algorithm procedure
-- [x] issues on energy, figure out plz
-
-- DP
-
-- [x] subtitle problem in Network Structure
-- [x] make all arguments correspond to images
-- [x] show a algorithm procedure
-- [x] loss function k definition
-
-- EXP
-
-- [x] put IMG-2 in training
-- [x] add task description 
 
