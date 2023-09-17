@@ -1,4 +1,4 @@
-# Behavioral Transformer
+# Behavior Transformers
 
 Considered that modeling multi-modality distribution of high-dimension continuous values is a quilt challenging problem, here proposes a new factoring of the action prediction task by dividing each action in two parts: a categorical variable denoting a `action center` and a corresponding `residual action`.
 
