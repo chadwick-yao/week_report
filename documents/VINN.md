@@ -1,4 +1,4 @@
-# VINN
+# Visual Imitation through Nearest Neighbors
 
 <div align='center'>
     <img src='VINN/image-20230906124723047.png' />

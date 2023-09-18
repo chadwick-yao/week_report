@@ -1,4 +1,4 @@
-# ROBOTICS TRANSFORMER-1
+# Robotics Transformer-1
 
 The RT-1 relies on a data-efficient and compact tokenization of images and language instructions. 
 

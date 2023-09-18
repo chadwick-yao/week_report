@@ -1,4 +1,4 @@
-# Action Chunking Transformer
+# Action Chunking with Transformers
 
 ## Training
 
