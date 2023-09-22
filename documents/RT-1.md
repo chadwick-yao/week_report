@@ -1,18 +1,28 @@
 # Robotics Transformer-1
 
-The RT-1 relies on a data-efficient and compact tokenization of images and language instructions. 
+### Details
 
-pretrained EFFICIENT-NET
+1. Embed texts by Universal Sentence Encoder, namely `text_cond`
+2. Obtain features by `MBConv`
+3. Do `FiLM` to integrate features and texts, i.e. $(1+Linear(text)*features+Linear(text))$
+4. After passing through FiLM EfficientNet-B3, we get 81 tokens. Then compress tokens with `TokenLearner` (81 tokens -> 8 tokens)
+5. Predict actions through `Transformer`
+6. Mapping actions in 256 bins space
 
-RT-1 tokenizes a history of 6 images by passing images through an ImageNet (300 * 300 * 3 > 9 * 9 * 512)
+<div align='center'>
+    <img src='assets/image-20230922105857541.png' />
+</div>
 
-flatten the output feature map from the EfficienNet into 81(9*9) visual tokens instead of patchifying the images into visual tokens.
 
-**pretrained language embedding** -> natural language instruction to constrain the image tokenizer
 
-(extract task-relevant image features early on and improving performance) UNIVERSAL SENTENCE ENCODER
+### Training Loss
 
-TokenLeaner is designed to speed up inference by extract more important tokens.
+1. Tokenize true actions
+2. Compute cross-entropy of model output (logits) and tokenized true ations
 
-**ACTION TOKENIZATION ** each action dimension is discretized into 256 bins.
+### Predict  Actions
+
+1. Select the last logit corresponding the last action
+2. Argmax
+3. Detokenize
 
