@@ -179,6 +179,3 @@ Code structure here is pretty easy, but when you need to modify something, it be
 `imitate_episodes` defines how it train and evaluate the whole model.
 `record_sim_episodes` is to produce simulation data.
 `visualize_episodes` is a method to save the simulation video.  
-
-normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-				 std=[0.229, 0.224, 0.225])
