@@ -179,4 +179,3 @@ Code structure here is pretty easy, but when you need to modify something, it be
 `imitate_episodes` defines how it train and evaluate the whole model.
 `record_sim_episodes` is to produce simulation data.
 `visualize_episodes` is a method to save the simulation video.  
-

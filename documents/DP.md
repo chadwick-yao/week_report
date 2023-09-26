@@ -1135,3 +1135,37 @@ variance = (self._get_variance(t, predicted_variance=predicted_variance) ** 0.5)
 7. What is bs in [bs, horizon, action_dim]? Why the dimension has three situations?
 
 > bs means batch_size. Because it needs to consider whether regarding observations as a condition. If no, the shape of the output is like (B, T, Da+Do), which uses impainting method to replace action with obs features. If yes, then consider whether predicting action steps only, output shape is (B, n_action_steps, Da) when predicting action steps only, else (B, T, Da).
+
+### Normalize and Unnormalize
+First, it uses the overall data to extract its representation information below.
+```python
+# diffusion_policy/model/common/normalizer.py
+this_params = nn.ParameterDict({
+    'scale': scale,
+    'offset': offset,
+    'input_stats': nn.ParameterDict({
+        'min': input_min,
+        'max': input_max,
+        'mean': input_mean,
+        'std': input_std
+    })
+})
+```
+About scale and offset, they depend on user's demands. But in defaults, its calculation method is shown below:
+```python
+# diffusion_policy/model/common/normalizer.py
+input_range = input_max - input_min
+ignore_dim = input_range < range_eps
+input_range[ignore_dim] = output_max - output_min
+scale = (output_max - output_min) / input_range
+offset = output_min - scale * input_min
+offset[ignore_dim] = (output_max + output_min) / 2 - input_min[ignore_dim]
+```
+Finally, when doing normalize and unnormalize, it's like this below:
+# diffusion_policy/model/common/normalizer.py
+```python
+if forward:
+    x = x * scale + offset
+else:
+    x = (x - offset) / scale
+``
