@@ -179,21 +179,32 @@ This week I finished polishing my documents on IBC, DP and other algorithms. The
 
 ### Next Week Targets
 
+Reproduce RT-1 Model
 
 ## 2023/09/08~2023/09/14
 
 RT-1 Done!
 
+## 2023/09/15 ~ 2023/09/26
+
+### Summary
+
+This half month I was trying to implement several algorithms, such RT-1, VINN, etc. However, VINN paper does not open its codes completely and RT-1 is implemented with tenserflow, which means that I need to code on these missing parts to implement them. With my deeper work on this moving on, I found my coding ability progressed drastically while I was manually creating the whole workspace. 
+
+### Done
+
 NEW APPROACH
 
 - [x] MODEL
-- [ ] K-MEANS
-- [ ] POLICY
-- [ ] WORKSPACE
+- [x] K-MEANS
+- [x] POLICY
+- [x] WORKSPACE
 - [ ] DEBUG
 
-1. byol的训练方式，我使用的是单张图片处理
-2. dataloader图片重复使用
-3. 训练cvae的时候，encoder没有按照每一类一次训练一次
+### Challenges
 
-Tasks Done.
+
+
+### Need to be done
+
+RT-1, etc, they have some missing parts needed to be implemented, like `n_obs_steps/To`. *Receding Horizon*
