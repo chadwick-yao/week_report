@@ -191,3 +191,9 @@ NEW APPROACH
 - [ ] POLICY
 - [ ] WORKSPACE
 - [ ] DEBUG
+
+1. byol的训练方式，我使用的是单张图片处理
+2. dataloader图片重复使用
+3. 训练cvae的时候，encoder没有按照每一类一次训练一次
+
+Tasks Done.
