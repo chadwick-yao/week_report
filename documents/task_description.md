@@ -66,5 +66,6 @@
     <img src='task_description/image-20230914171520768.png' />
     <img src='task_description/image-20230914171604405.png' />
 </div>
+<a href='https://ut-austin-rpl.github.io/deoxys-docs/html/project.html'>使用spacemouse的研究</a>
 
-
+<a href='https://ut-austin-rpl.github.io/deoxys-docs/html/tutorials/using_teleoperation_devices.html'>继承robosuite的spacemouse控制代码</a>
