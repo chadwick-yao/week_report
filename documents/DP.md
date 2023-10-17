@@ -112,6 +112,8 @@ Here is one table to describe the details of these different networks. And the V
 | robot0_eef_quat\|[4]\|low_dim              | None           | None\|[4]\|[4]              |
 | robot0_gripper_qpos\|[2]\|low_dim          | None           | None\|[2]\|[2]              |
 
+> The visual encoder here is from Robomimic, which is well designed for Robomimic tasks. Due to receding horizon policy, the observation input here has history information (bs, To, c, h, w). And finally it gets observation features (bs, To, 64 * cam_num + low_dim). 
+
 **Visual Encoder Forward Details**
 
 ```python
@@ -172,6 +174,10 @@ class ObservationEncoder(nn.Module):
         <figcaption>Transformer Network</figcaption>
     </figure>
 </div>
+> Added `timestep`, before feeding to transformer encoder, it will do one time position embedding, which is learnable parameters. 
+>
+> The input is noised action sequence, not learnable. 
+
 **Input**
 
 - noised_trajectory: noised action from pre-processing outputs [batch_size, horizon, 7]
