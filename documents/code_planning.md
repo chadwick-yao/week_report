@@ -34,8 +34,6 @@ tgt2 = self.multihead_attn(query=self.with_pos_embed(tgt, query_pos),
                            key_padding_mask=memory_key_padding_mask)[0]
 ```
 
-> After the 3 steps processing, it will just take out the first element of transformer decoder as the next step action, instead, in other algorithms, they would use the whole output of transformer decoder as the next `n` steps actions.
-
 # DP
 
 ## Visual Encoder
@@ -49,5 +47,3 @@ Added `timestep`, before feeding to transformer encoder, it will do one time pos
 ## Transformer Decoder
 
 The input is noised action sequence, not learnable. 
-
-> After the whole process, it will use all output of the transformer decoder.
