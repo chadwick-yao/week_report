@@ -81,7 +81,7 @@ latent_input = self.latent_out_proj(latent_sample)
 >
 > Here, in each transformer encoder layer, it will do one time position embedding, which is a big difference from pytorch package. (Here position embedding is not learnable)
 
-### CVAE EDecoder
+### CVAE Decoder
 
 The `decoder` includes a resnet block to process images, a transformer encoder and a transformer decoder. The inputs include images from four different cameras, joints positions and latent code/style variable from `encoder` of VAE. For images, it will go into ResNet18 to extract its features. Then the features of images, joints positions and style variable will be concatenated together for position embedding. 
 
