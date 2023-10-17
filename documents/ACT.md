@@ -43,7 +43,7 @@ action_sequence = padded_action[:k]
 # images: the images store image info in every single timestep from wrist, front, top cameras 
 ```
 
-### Encoder & Decoder
+### CVAE Encoder
 
 As it described above, the `encoder` is a transformer encoder, which produces a style variable from input. We have `qpos`, `CLS` and `action sequence`. Before feeding them into encoder, we do mapping these into a 512-dim space by using linear layer. Then, we concatenate them in second dimension (axis=1) and do position embedding process. 
 
@@ -80,6 +80,8 @@ latent_input = self.latent_out_proj(latent_sample)
 > It will concatenate embedded CLS (bs, 1, dim), embedded joint positions (bs, 1 , dim), and action sequence (bs, horizon, dim) which has time history information.
 >
 > Here, in each transformer encoder layer, it will do one time position embedding, which is a big difference from pytorch package. (Here position embedding is not learnable)
+
+### CVAE EDecoder
 
 The `decoder` includes a resnet block to process images, a transformer encoder and a transformer decoder. The inputs include images from four different cameras, joints positions and latent code/style variable from `encoder` of VAE. For images, it will go into ResNet18 to extract its features. Then the features of images, joints positions and style variable will be concatenated together for position embedding. 
 
