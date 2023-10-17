@@ -45,11 +45,9 @@ action_sequence = padded_action[:k]
 
 ### CVAE Encoder
 
-As it described above, the `encoder` is a transformer encoder, which produces a style variable from input. We have `qpos`, `CLS` and `action sequence`. Before feeding them into encoder, we do mapping these into a 512-dim space by using linear layer. Then, we concatenate them in second dimension (axis=1) and do position embedding process. 
-
 ![image-20230816143139064](assets/image-20230816143139064.png)
 
-After being processed by transformer decoder, we just take the first output or CLS output. Through a learnable linear layer, we get `mean` and `std` of CLS output. Finally we use reparameterization algorithm to solve the non-derivable issue.
+- Why output CLS only?
 
 ```python
 ## Obtain latent z from action sequence
@@ -59,8 +57,8 @@ qpos_embed = self.encoder_joint_proj(qpos)  # (bs, hidden_dim)
 qpos_embed = torch.unsqueeze(qpos_embed, axis=1)  # (bs, 1, hidden_dim)
 cls_embed = self.cls_embed.weight # (1, hidden_dim)
 cls_embed = torch.unsqueeze(cls_embed, axis=0).repeat(bs, 1, 1) # (bs, 1, hidden_dim)
-encoder_input = torch.cat([cls_embed, qpos_embed, action_embed], axis=1) # (bs, seq+1, hidden_dim)
-encoder_input = encoder_input.permute(1, 0, 2) # (seq+1, bs, hidden_dim)
+encoder_input = torch.cat([cls_embed, qpos_embed, action_embed], axis=1) # (bs, seq+2, hidden_dim)
+encoder_input = encoder_input.permute(1, 0, 2) # (seq+2, bs, hidden_dim)
 # do not mask cls token
 cls_joint_is_pad = torch.full((bs, 2), False).to(qpos.device) # False: not a padding
 is_pad = torch.cat([cls_joint_is_pad, is_pad], axis=1)  # (bs, seq+1)
