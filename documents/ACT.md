@@ -52,7 +52,7 @@ As it described above, the `encoder` is a transformer encoder, which produces a 
 After being processed by transformer decoder, we just take the first output or CLS output. Through a learnable linear layer, we get `mean` and `std` of CLS output. Finally we use reparameterization algorithm to solve the non-derivable issue.
 
 ```python
-""" Encoder -> get z style variable or latent input"""
+## Obtain latent z from action sequence
 # project action sequence to embedding dim, and concat with a CLS token
 action_embed = self.encoder_action_proj(actions) # (bs, seq, hidden_dim)
 qpos_embed = self.encoder_joint_proj(qpos)  # (bs, hidden_dim)
