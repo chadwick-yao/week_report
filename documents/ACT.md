@@ -47,8 +47,6 @@ action_sequence = padded_action[:k]
 
 ![image-20230816143139064](assets/image-20230816143139064.png)
 
-- Why output CLS only?
-
 ```python
 ## Obtain latent z from action sequence
 # project action sequence to embedding dim, and concat with a CLS token
