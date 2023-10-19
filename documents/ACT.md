@@ -78,7 +78,7 @@ latent_input = self.latent_out_proj(latent_sample)
 ### Visual Encoder
 
 <div align='center'>
-    <img src='assets/image-20231019154201739.png' />
+    <img src='assets/visual_encoder.png' />
 </div>
 
 ```python
