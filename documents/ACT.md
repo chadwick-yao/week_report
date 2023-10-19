@@ -6,7 +6,7 @@
 
 The whole model is trained as a Conditional VAE, which means it first produces a latent code extracted from the input (called encoder, left in the picture), and then uses the latent code to restore the input (called decoder, right in the picture). In details, it regards observations as the conditions to constrain and help itself to perform better.
 
-![image-20230818101923726](ACT/image-20230818101923726.png)
+![cvae_decoder](ACT/image-20230818101923726.png)
 
 Before training, we should to create our `dataloader`. First, its `.dhf5` file data structure is like this below:
 
@@ -195,7 +195,7 @@ class Joiner(nn.Sequential):
 
 The `decoder` includes a resnet block to process images, a transformer encoder and a transformer decoder. The inputs include images from four different cameras, joints positions and latent code/style variable from `encoder` of VAE. For images, it will go into ResNet18 to extract its features. Then the features of images, joints positions and style variable will be concatenated together for position embedding. 
 
-![image-20230816143204772](assets/image-20230816143204772.png)
+![cvae_decoder](assets/cvae_decoder.png)
 
 The inputs of transformer decoder are also some learnable embedding parameters which teaches the model how to query actions.
 
