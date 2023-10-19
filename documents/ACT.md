@@ -112,6 +112,25 @@ class Backbone(BackboneBase):
         num_channels = 512 if name in ('resnet18', 'resnet34') else 2048
         super().__init__(backbone, train_backbone, num_channels, 
 ```
+Forward and position embedding caculation.
+```python
+class Joiner(nn.Sequential):
+    def __init__(self, 
+                 backbone: Backbone, 
+                 position_embedding: Union[PositionEmbeddingLearned, PositionEmbeddingSine]):
+        super().__init__(backbone, position_embedding)
+
+    def forward(self, tensor_list: NestedTensor):
+        xs = self[0](tensor_list)
+        out: List[NestedTensor] = []
+        pos = []
+        for name, x in xs.items():
+            out.append(x)
+            # position encoding
+            pos.append(self[1](x).to(x.dtype))
+
+        return out, pos
+```
 
 ### CVAE Decoder
 
