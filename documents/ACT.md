@@ -79,6 +79,10 @@ latent_input = self.latent_out_proj(latent_sample)
 
 ### Visual Encoder
 
+<div align='center'>
+    <img src='assets/image-20231019154201739.png' />
+</div>
+
 ```python
 class FrozenBatchNorm2d(torch.nn.Module):
     """
