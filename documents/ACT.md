@@ -79,8 +79,6 @@ latent_input = self.latent_out_proj(latent_sample)
 
 ### Visual Encoder
 
-Here visual encoder is from torchvision.models.resnet18, but it did some modification, like replacingnorm_layer with his own designed FrozenBatchNorm2d. More importantly, instead of taking the last output of Linear Layer, it uses {'layer4': "0"}.
-
 ```python
 import torchvision
 from torchvision.models._utils import IntermediateLayerGetter
