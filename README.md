@@ -199,7 +199,7 @@ NEW APPROACH
 - [x] K-MEANS
 - [x] POLICY
 - [x] WORKSPACE
-- [ ] DEBUG
+- [x] DEBUG
 
 ### Challenges
 
@@ -210,4 +210,12 @@ NEW APPROACH
 RT-1, etc, they have some missing parts needed to be implemented, like `n_obs_steps/To`. *Receding Horizon*
 
 
-Waiting for a better performance!
+## 2023/10/07~2023/10/19
+### Summary
+The long holiday resting's over. I quickly returned to work, to figure out why my code did not get a satisfying performance. The problem is, at first, I virtually changed every corner to integrate into DP code structure. So these 2 weeks I planned to change ACT code from step to step, more specifically, transformer implementation, position embedding, visual encoder, receding horizon, and finally classification. Until now, I've already done the first 2 steps, and everything worked well. The second thing is about SpaceMouse. My plan is to develop a comprehensive system, which can control all kinds of manipulators, including iiwa, franka, and UR in CoppeliaSim environment.
+
+### Done
+
+### Challenges
+
+### Need to be done
