@@ -201,7 +201,6 @@ Both transformer encoder and decoder are using torch.nn module, and the transfor
 **Transformer Forward Details**
 
 ```python
-# diffusion_policy/model/diffusion/transformer_for_diffusion.py
 class TransformerForDiffusion(ModuleAttrMixin):
     # ......
     def forward(self, 
