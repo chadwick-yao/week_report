@@ -193,6 +193,8 @@ proprio_input = self.input_proj_robot_state(qpos)
 src = torch.cat(all_cam_features, axis=3)
 pos = torch.cat(all_cam_pos, axis=3)
 hs = self.transformer(src, None, self.query_embed.weight, pos, latent_input, proprio_input, self.additional_pos_embed.weight)[0]
+a_hat = self.action_head(hs)
+is_pad_hat = self.is_pad_head(hs)
 ```
 
 > It selects the output of {'layer4': "0"} (transfer shape: 3, h, w into shape: dim, h’, w’) to represent images features, whose shape is (bs. dim, cam_num * h’ * w’). And its position information is based on the relative position of (h’, w’). (not learnable)
