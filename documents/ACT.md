@@ -172,8 +172,6 @@ class Joiner(nn.Sequential):
 
 ### CVAE Decoder
 
-The `decoder` includes a resnet block to process images, a transformer encoder and a transformer decoder. The inputs include images from four different cameras, joints positions and latent code/style variable from `encoder` of VAE. For images, it will go into ResNet18 to extract its features. Then the features of images, joints positions and style variable will be concatenated together for position embedding. 
-
 <div align='center'>
     <img src='assets/cvae_decoder.png' />
 </div>
