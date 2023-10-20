@@ -176,8 +176,6 @@ class Joiner(nn.Sequential):
     <img src='assets/cvae_decoder.png' />
 </div>
 
-The inputs of transformer decoder are also some learnable embedding parameters which teaches the model how to query actions.
-
 ```python
 # Image observation features and position embeddings
 all_cam_features = []
