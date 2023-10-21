@@ -46,6 +46,12 @@ action_sequence = padded_action[:k]
 ![image-20230816143139064](assets/image-20230816143139064.png)
 
 ```python
+"""
+        qpos: batch, qpos_dim
+        image: batch, num_cam, channel, height, width
+        env_state: None
+        actions: batch, seq, action_dim
+"""
 ## Obtain latent z from action sequence
 # project action sequence to embedding dim, and concat with a CLS token
 action_embed = self.encoder_action_proj(actions) # (bs, seq, hidden_dim)
