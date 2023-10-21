@@ -183,6 +183,11 @@ image: batch, num_cam, channel, height, width
 env_state: None
 actions: batch, seq, action_dim
 """
+# ......
+self.input_proj = nn.Conv2d(backbones[0].num_channels, hidden_dim, kernel_size=1)
+self.backbones = nn.ModuleList(backbones)
+self.input_proj_robot_state = nn.Linear(14, hidden_dim)
+
 # Image observation features and position embeddings
 all_cam_features = []
 all_cam_pos = []
