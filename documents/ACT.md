@@ -199,6 +199,8 @@ The `decoder` includes a resnet block to process images, a transformer encoder a
 
 The inputs of transformer decoder are also some learnable embedding parameters which teaches the model how to query actions.
 
+> As the code describes below, we feed `src, query, img_pos, latent_input, joints (proprio_input), additional_pos` into CVAE Encoder.
+
 ```python
 # Image observation features and position embeddings
 all_cam_features = []
@@ -217,6 +219,30 @@ src = torch.cat(all_cam_features, axis=3)
 pos = torch.cat(all_cam_pos, axis=3)
 hs = self.transformer(src, None, self.query_embed.weight, pos, latent_input, proprio_input, self.additional_pos_embed.weight)[0]
 ```
+
+Then inside CVAE Encoder, it will do follow things to fit transformer inputs. More specifically, transformer encoder in CVAE Decoder, it takes in latent_input, joints and image features. Meanwhile, the transformer decoder takes in tgt, output from transformer encoder.
+
+```python
+# flatten NxCxHxW to HWxNxC
+bs, c, h, w = src.shape
+src = src.flatten(2).permute(2, 0, 1)
+pos_embed = pos_embed.flatten(2).permute(2, 0, 1).repeat(1, bs, 1)
+query_embed = query_embed.unsqueeze(1).repeat(1, bs, 1)
+# mask = mask.flatten(1)
+
+additional_pos_embed = additional_pos_embed.unsqueeze(1).repeat(1, bs, 1) # seq, bs, dim
+pos_embed = torch.cat([additional_pos_embed, pos_embed], axis=0)
+
+addition_input = torch.stack([latent_input, proprio_input], axis=0)
+src = torch.cat([addition_input, src], axis=0)
+
+tgt = torch.zeros_like(query_embed)
+memory = self.encoder(src, src_key_padding_mask=mask, pos=pos_embed)
+hs = self.decoder(tgt, memory, memory_key_padding_mask=mask,
+                  pos=pos_embed, query_pos=query_embed)
+```
+
+
 
 > It selects the output of {'layer4': "0"} (transfer shape: 3, h, w into shape: dim, h’, w’) to represent images features, whose shape is (bs. dim, cam_num * h’ * w’). And its position information is based on the relative position of (h’, w’). (not learnable)
 >

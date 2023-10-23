@@ -190,7 +190,7 @@ class ObservationEncoder(nn.Module):
 
 
 
-`Encoder` is designed to  encode observation features and timesteps. `n_cond_layers` is a hyperparameter that can be set in configuration files, and if it’s > 0, the transformer encoder will replace MLP encoder. 
+`Encoder` is designed to  encode observation features and timesteps. `n_cond_layers` is a hyperparameter that can be set in configuration files, and if it’s > 0, the transformer encoder will replace MLP encoder. (Output shape is [bs, To, n_emb])
 
 `Decoder` takes in noised actions and encoded information, then predicts a noise with the same shape of sample as output.
 
