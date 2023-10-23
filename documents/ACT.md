@@ -6,8 +6,6 @@
 
 The whole model is trained as a Conditional VAE, which means it first produces a latent code extracted from the input (called encoder, left in the picture), and then uses the latent code to restore the input (called decoder, right in the picture). In details, it regards observations as the conditions to constrain and help itself to perform better.
 
-![image-20230818101923726](ACT/image-20230818101923726.png)
-
 Before training, we should to create our `dataloader`. First, its `.dhf5` file data structure is like this below:
 
 ```tex
@@ -80,7 +78,7 @@ latent_input = self.latent_out_proj(latent_sample)
 ### Visual Encoder
 
 <div align='center'>
-    <img src='assets/image-20231019154201739.png' />
+    <img src='assets/visual_encoder.png' width="400" />
 </div>
 
 ```python
@@ -171,42 +169,31 @@ class Joiner(nn.Sequential):
 
         return out, pos
 ```
-Forward and position embedding caculation.
-```python
-class Joiner(nn.Sequential):
-    def __init__(self, 
-                 backbone: Backbone, 
-                 position_embedding: Union[PositionEmbeddingLearned, PositionEmbeddingSine]):
-        super().__init__(backbone, position_embedding)
-
-    def forward(self, tensor_list: NestedTensor):
-        xs = self[0](tensor_list)
-        out: List[NestedTensor] = []
-        pos = []
-        for name, x in xs.items():
-            out.append(x)
-            # position encoding
-            pos.append(self[1](x).to(x.dtype))
-
-        return out, pos
-```
 
 ### CVAE Decoder
 
-The `decoder` includes a resnet block to process images, a transformer encoder and a transformer decoder. The inputs include images from four different cameras, joints positions and latent code/style variable from `encoder` of VAE. For images, it will go into ResNet18 to extract its features. Then the features of images, joints positions and style variable will be concatenated together for position embedding. 
-
-![image-20230816143204772](assets/image-20230816143204772.png)
-
-The inputs of transformer decoder are also some learnable embedding parameters which teaches the model how to query actions.
+<div align='center'>
+    <img src='assets/cvae_decoder.png' />
+</div>
 
 > As the code describes below, we feed `src, query, img_pos, latent_input, joints (proprio_input), additional_pos` into CVAE Encoder.
 
 ```python
+"""
+qpos: batch, qpos_dim
+image: batch, num_cam, channel, height, width
+env_state: None
+actions: batch, seq, action_dim
+"""
+# ......
+self.input_proj = nn.Conv2d(backbones[0].num_channels, hidden_dim, kernel_size=1)
+self.backbones = nn.ModuleList(backbones)
+self.input_proj_robot_state = nn.Linear(14, hidden_dim)
+
 # Image observation features and position embeddings
 all_cam_features = []
 all_cam_pos = []
 for cam_id, cam_name in enumerate(self.camera_names):
-
     features, pos = self.backbones[0](image[:, cam_id]) # HARDCODED
     features = features[0] # take the last layer feature
     pos = pos[0]
@@ -218,6 +205,8 @@ proprio_input = self.input_proj_robot_state(qpos)
 src = torch.cat(all_cam_features, axis=3)
 pos = torch.cat(all_cam_pos, axis=3)
 hs = self.transformer(src, None, self.query_embed.weight, pos, latent_input, proprio_input, self.additional_pos_embed.weight)[0]
+a_hat = self.action_head(hs)
+is_pad_hat = self.is_pad_head(hs)
 ```
 
 Then inside CVAE Encoder, it will do follow things to fit transformer inputs. More specifically, transformer encoder in CVAE Decoder, it takes in latent_input, joints and image features. Meanwhile, the transformer decoder takes in tgt, output from transformer encoder.
