@@ -219,3 +219,19 @@ The long holiday resting's over. I quickly returned to work, to figure out why m
 ### Challenges
 
 ### Need to be done
+
+
+
+## 2023/11/5 ~ 2023/11/12
+
+### Summary
+
+In recent days, I just finished some issues about Real Environment, in terms of multiple-process/threading, sync and robot inference.
+
+### Challenges
+
+**Cannot save too many images within Robot Threading.**
+> This is because images processing need quite a long time, which delays the whole timeline to make actions unrecognized as new instructions. The solution is we first saved the whole process in a video, and load these data while doing training.
+
+### TODO
+Now, actually the trained model is not so good, when I used that trained model in iiwa 7, the robot always crashed. Additionally, the output or the predicted actions are randomly, maybe the model is not so well indeed?
