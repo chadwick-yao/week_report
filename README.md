@@ -235,3 +235,10 @@ In recent days, I just finished some issues about Real Environment, in terms of 
 
 ### TODO
 Now, actually the trained model is not so good, when I used that trained model in iiwa 7, the robot always crashed. Additionally, the output or the predicted actions are randomly, maybe the model is not so well indeed?
+
+
+
+**Challenges**
+
+Gripper performance is bad.
+
