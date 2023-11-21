@@ -4,6 +4,8 @@
 
 The best moments usually occur when a person's body or mind is stretched to its limits in a voluntary effort to accomplish something difficult and worthwhile.
 
+[TOC]
+
 ## 2023/07/05~2023/07/12 第一周
 
 ### 概述
@@ -236,9 +238,51 @@ In recent days, I just finished some issues about Real Environment, in terms of 
 ### TODO
 Now, actually the trained model is not so good, when I used that trained model in iiwa 7, the robot always crashed. Additionally, the output or the predicted actions are randomly, maybe the model is not so well indeed?
 
+## 2023/11/21
 
+### 本周工作内容
 
-**Challenges**
+- 解决下位机与上位机进行操控时的速度不一致问题
 
-Gripper performance is bad.
+  - 设置上位机最大速度（本质上其实是控制通信频率）
+  - 通过上位机最大速度/频率，对下位机SpaceMouse进行同步
+  - 给SpaceMouse设置一个最低阈值，避免误触增加数据的复杂度
 
+- 解决上位机停顿不连续问题
+
+  - 做推断的过程在0.1s左右，意味着每一次给上位机发送指令会有一个停顿，不可避免上位机动起来断断续续
+  - RealTime Servo控制不支持直接的速度控制，但我们可以在自己程序中设定一个执行持续时间
+  - 最终考虑，可以降低上位机的最大速度，32mm/s -> 8mm/s
+
+- 真机部署效果差
+
+  - 把任务难度下降到最低，初始位置固定，目标木块位置基本固定，行径路径大致一致
+
+  <div align="center">
+      <img src="README/output.gif" width="75%" />
+  </div>
+
+  - 改用DP在真实任务下（Push-T）的配置参数
+  - 效果仍然比较差
+
+  <div alilgn="center">
+      <img src="README/fast_video_0.gif" width="49%" />
+      <img src="README/fast_video_1.gif" width="49%" />
+  </div>
+
+- 仿真测试
+
+  - 模拟真实环境30hz进行数据采集（20条）
+  - Franka -> iiwa7, Franka gripper -> Robotiq85 gripper
+  - lift cube任务
+  - DP的仿真配置文件
+
+  <div align="center">
+      <img src="README/fast_video_2.gif" width="50%" />
+  </div>
+
+### 下下周计划
+
+- 思考performance很差的原因
+- 排除图像收集过程中的干扰因素
+- 尝试更多的其他算法，看是不是数据的原因
