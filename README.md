@@ -1,10 +1,10 @@
+[TOC]
+
 # 跬步千里
 
 **Weekly Report.**
 
 The best moments usually occur when a person's body or mind is stretched to its limits in a voluntary effort to accomplish something difficult and worthwhile.
-
-[TOC]
 
 ## 2023/07/05~2023/07/12 第一周
 
@@ -278,7 +278,7 @@ Now, actually the trained model is not so good, when I used that trained model i
   - DP的仿真配置文件
 
   <div align="center">
-      <img src="README/fast_video_2.gif" width="50%" />
+      <img src="README/fast_video_2.gif" width="25%" />
   </div>
 
 ### 下下周计划
@@ -286,3 +286,106 @@ Now, actually the trained model is not so good, when I used that trained model i
 - 思考performance很差的原因
 - 排除图像收集过程中的干扰因素
 - 尝试更多的其他算法，看是不是数据的原因
+
+## 2023/12/01
+
+### 周总结
+
+11/29日参与研讨会，有以下几个收获：
+
+- 首先learning肯定是未来的方向，目前有两种track，一种是totally based on data，就是想GPT一样能够有足够多的数据支持，然后让模型能够做更多的任务，达到zero-shot的效果；另外一个就是，learning也应该是和人学习一样，不会说你可以凭空可以去做一个任务，还是要针对于task进行训练。（RT-1, RT-2以及RT-X，对应的CVAE, DM）
+- GPT在task planning和motion planning的应用
+- 也谈了一下offline RL和immitation的结合
+
+
+
+## 2023/12/09
+
+- 12/01采集的数据部署的效果非常差，观察到的现相：在抓物体的过程中出现怪异姿势，甚至会抱死；
+
+  <div align="center">
+      <img src="README/img_v3_025v_ee1260cf-695b-46e4-adfe-2e88c0a5f06g.gif" />
+  </div>
+
+  - 现象分析：
+
+    - 在预测静止动作的时候，会存在些许偏差。例子：比如预测下一时刻的末端位置，理想状态下是一个全零向量[0,0,0,0,0,0]，但是实际上可能是[0.01,-0.02,0,0.01,-0.01,0.02]。前三个度量单位是毫米，后三个单位是弧度；
+    - 位置影响很小，但是由于预测的是一个连续序列动作，角度的误差最差情况下能达到好几度；
+    - 当遇到一个未知的状态下，会变得非常不稳定（异常->更加异常，甚至引起抱死）；
+
+  - 解决思路：
+
+    - SpaceMouse在做action的捕捉的时候，过滤掉0.3以下的数据，保证采集数据是比较大的值，也是让模型训练以后能够让“真正的动作”更明显
+
+    - 给角度设置一个阈值：
+
+      - ```
+        mask = np.logical_and(action[:, 3:6] >= -0.02, action[:, 3:6] <= 0.02)
+        action[:, 3:6][mask] = 0.0
+        ```
+
+  - 最终效果：
+  
+    <div align="center">
+        <img src="README/img_v3_025v_38371155-a635-4999-b593-d7d7e3bcbfdg.gif" />
+    </div>
+
+
+- 12/05重新收集50组数据。程序上限制数据的时间长度（15s），而不是之前手动停止数据收集；运动比较慢，同时大多数情况下会处于不动的状态；val_mse并没有向0进行收敛；
+
+  <div align="center">
+      <img src="README/img_v3_025v_1b18d4b5-fa25-408a-8b81-e19fee8f631g.gif" />
+      <img src="README/image-20231209175502517.png" />
+  </div>
+
+
+  - 现象分析：
+
+    - 在分析收集的action时，发现收集的数据基本上都有前3s多的静止不动的画面；
+    - 认为可能是训练数据的action不够大；
+    - 不收敛可能是因为数据量不够大；
+  - 解决思路：
+
+    - 数据收集开始避免不必要的等待；
+    - 在更短的时间，以更低的频率进行数据收集
+    - 收集100条轨迹数据
+
+- 12/9部署结果（10s/5hz/100条）模型的val_mse一致在降，但其实还是一个很大的数值；
+
+  <div align="center">
+      <img src="README/image-20231209181356569.png" />
+  </div>
+
+
+  - 短距离，能够成功，但是明显可以看到会运动的过大，比如抓到之后还会向下运动：
+
+    <div align="center">
+        <img src="README/img_v3_025v_a6934350-95ad-4684-90e2-a35dade8068g.gif" />
+    </div>
+
+  - 长距离，不成功，明显运动过大并且不会调整回来：
+
+    <div align="center">
+        <img src="README/img_v3_025v_56bc090b-19eb-47e2-b3be-0cfca6d2795g.gif" />
+    </div>
+
+  -  现象分析：
+
+    - 频率不能够太低，最好还是只是缩短servo的时间；
+    - 不确定：训练用的observation有问题？模型不会用？
+
+- 尝试使用ACT在相同数据的进行训练的部署效果->目的就是看是不是DP在当前参数下perf就是不是很好
+
+
+  - 写一个data_conversion.py将DP收集数据的格式转化为ACT能使用的形式；
+
+  - 将qpos替换成末端位置和爪子的姿态；
+
+  - 训练效果如下：
+
+    <div align="center">
+        <img src="README/image-20231209181842515.png" />
+    </div>
+
+  - 目前还在修改ACT在DP框架下的部署代码；
+
