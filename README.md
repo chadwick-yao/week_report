@@ -406,3 +406,31 @@ Now, actually the trained model is not so good, when I used that trained model i
 <div align="center">
   <img src="README/12_23.gif" width="25%" />
 </div>
+
+今日任务:
+
+- 失败原因分析
+- 申请西北大学的项目
+
+**200次PICK训练数据实验**
+
+在仿真中做一下，不同频率(10 hz, 20 hz, 30hz)情况下对模型效果的影响
+
+- 写插值
+
+不收敛的原因：
+
+- 频率
+- 摄像头
+
+<div align="center">
+    <img src="assets/image-20231226150002892.png" width="49%" />
+    <img src="assets/image-20231226150058860.png" width="49%" />
+</div>
+
+左图是收集的数据，可以看到和有图测试效果很相似，很难区分真正需要关闭夹爪的位置。
+
+evaluation卡顿问题：
+
+- 经过分析，这里卡顿是因为弄混了inference的freq和control的freq之间的概念。比方说，在我们进行采数据的时候，频率为10hz，这个频率就是control freq，每0.1秒发给机械臂一个action。但是在做evaluation的时候，会有inference freq的概念，我这里定义为：每次做一次prediction的所消耗的时间。然而，每次预测实际上是预测/执行多步（假设执行8步），那么实际上本应该的control freq将会是8 * inference_freq。但实际上我们给的control freq是10hz，这就会导致需要将一个很高的频率同步到10hz，也就意味着动作很快就做完了，但是还需要进行等待。
+- 所以正确的做法是，让我们需要指定的control freq和计算的估计值inference_step * inference_freq相近（小于最好，不然会有些bug）。
