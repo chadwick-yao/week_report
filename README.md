@@ -433,4 +433,7 @@ Now, actually the trained model is not so good, when I used that trained model i
 evaluation卡顿问题：
 
 - 经过分析，这里卡顿是因为弄混了inference的freq和control的freq之间的概念。比方说，在我们进行采数据的时候，频率为10hz，这个频率就是control freq，每0.1秒发给机械臂一个action。但是在做evaluation的时候，会有inference freq的概念，我这里定义为：每次做一次prediction的所消耗的时间。然而，每次预测实际上是预测/执行多步（假设执行8步），那么实际上本应该的control freq将会是8 * inference_freq。但实际上我们给的control freq是10hz，这就会导致需要将一个很高的频率同步到10hz，也就意味着动作很快就做完了，但是还需要进行等待。
-- 所以正确的做法是，让我们需要指定的control freq和计算的估计值inference_step * inference_freq相近（小于最好，不然会有些bug）。
+
+- 另外，由于进行下一次prediction的时候是需要执行完上次一所有predict的actions（不然get_obs会在时间线上对应不上），这里也需要时间。所以正确的做法是，让我们需要指定的control freq和计算的估计值1 / (inference_time + 8 * max_execute_time)相近（小于最好，不然会有些bug）。
+
+- 另外一种解法，有点儿复杂：建立一个action队列，会把prediction的actions放入队列，然后以10hz频率进行step，但是每次进行新的一次predict的时候clear掉整个队列（为了避免get_obs在timeline上不匹配）
